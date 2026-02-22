@@ -1442,6 +1442,18 @@ function startMeasurement30() {
   rOverlay.style.display = 'flex';
 }
 
+// Check if a landmark is visible: use visibility if available, else check coordinates are in-frame
+function lmVisible(landmarks, idx, threshold) {
+  const lm = landmarks[idx];
+  if (!lm) return false;
+  // If model provides visibility, use it; lite model often returns undefined/0
+  if (typeof lm.visibility === 'number' && lm.visibility > 0.01) {
+    return lm.visibility >= threshold;
+  }
+  // Fallback: landmark is "visible" if its coordinates are within the frame (0-1 range with margin)
+  return lm.x > 0.02 && lm.x < 0.98 && lm.y > 0.02 && lm.y < 0.98;
+}
+
 // Called from detectLoop each frame while isCheckingReadiness
 function checkReadiness(landmarks) {
   const area = selectedArea || 'all';
@@ -1451,8 +1463,8 @@ function checkReadiness(landmarks) {
   const items = document.querySelectorAll('#readinessChecks .readiness-item');
   checks.forEach((check, i) => {
     const pass = check.anyOf
-      ? check.landmarks.some(idx => (landmarks[idx]?.visibility || 0) >= check.threshold)
-      : check.landmarks.every(idx => (landmarks[idx]?.visibility || 0) >= check.threshold);
+      ? check.landmarks.some(idx => lmVisible(landmarks, idx, check.threshold))
+      : check.landmarks.every(idx => lmVisible(landmarks, idx, check.threshold));
     if (items[i]) {
       items[i].classList.toggle('pass', pass);
       items[i].querySelector('.ri-icon').textContent = pass ? '✓' : '○';
