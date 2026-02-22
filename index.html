@@ -188,6 +188,54 @@ header h1 span { color: var(--blue); }
   padding: 4px 16px; border-radius: 20px; font-family: monospace;
 }
 
+/* Readiness check overlay */
+.readiness-overlay {
+  position: absolute; inset: 0; z-index: 25;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.45);
+}
+.readiness-title {
+  font-size: 15px; font-weight: 700; color: #fff;
+  margin-bottom: 12px;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.8);
+}
+.readiness-checks {
+  display: flex; flex-direction: column; gap: 6px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 12px; padding: 14px 18px;
+  min-width: 180px;
+}
+.readiness-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.4);
+  transition: color 0.2s, transform 0.2s;
+}
+.readiness-item.pass { color: var(--green); transform: scale(1.03); }
+.readiness-item .ri-icon { width: 18px; text-align: center; font-size: 15px; }
+.readiness-hint {
+  margin-top: 10px; font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  text-align: center; max-width: 220px;
+}
+.readiness-ok {
+  font-size: 48px; font-weight: 800; color: var(--green);
+  text-shadow: 0 0 30px rgba(0,230,118,0.6);
+  animation: readinessOkPulse 0.4s ease-out;
+}
+@keyframes readinessOkPulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.btn-cancel-readiness {
+  pointer-events: auto; margin-top: 12px;
+  font-size: 12px; padding: 6px 20px;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  color: #fff; border-radius: 8px; cursor: pointer;
+}
+
 /* RULA bar */
 .rula-bar {
   width: 100%; padding: 6px 16px;
@@ -490,6 +538,13 @@ header h1 span { color: var(--blue); }
       <div class="measure-timer" id="measureTimer" style="display:none;">00:00</div>
       <div class="measure-progress"><div class="measure-progress-fill" id="measureProgress"></div></div>
     </div>
+    <!-- Readiness check overlay -->
+    <div class="readiness-overlay" id="readinessOverlay" style="display:none;">
+      <div class="readiness-title" id="readinessTitle">ポジション確認中</div>
+      <div class="readiness-checks" id="readinessChecks"></div>
+      <div class="readiness-hint" id="readinessHint">必要な部位をカメラに映してください</div>
+      <button class="btn-cancel-readiness" id="btnCancelReadiness">キャンセル</button>
+    </div>
   </div>
 
   <div class="rula-bar" id="rulaBar">
@@ -767,6 +822,41 @@ const METRIC_DEFS = {
   pelvicTilt: { id:'pelvic', name:'骨盤水平', unit:'°', detail:'左右の腰のY座標差。', ref:'基準: <3°正常 / 3-5°注意 / >5°警告', getValue:m=>m.pelvicTilt, getStatus:m=>m.pelvicStatus }
 };
 
+// Readiness checks: which landmarks must be visible before starting measurement
+const READINESS_CHECKS = {
+  head: [
+    { label: '顔', landmarks: [0], threshold: 0.5 },
+    { label: '耳（片方でOK）', landmarks: [7, 8], threshold: 0.3, anyOf: true },
+    { label: '両肩', landmarks: [11, 12], threshold: 0.5 },
+  ],
+  shoulders: [
+    { label: '両肩', landmarks: [11, 12], threshold: 0.5 },
+    { label: '両肘', landmarks: [13, 14], threshold: 0.4 },
+    { label: '腰', landmarks: [23, 24], threshold: 0.5 },
+  ],
+  'bow-arm': [
+    { label: '右肩', landmarks: [12], threshold: 0.5 },
+    { label: '右肘', landmarks: [14], threshold: 0.5 },
+    { label: '右手首', landmarks: [16], threshold: 0.4 },
+  ],
+  'finger-arm': [
+    { label: '左肩', landmarks: [11], threshold: 0.5 },
+    { label: '左肘', landmarks: [13], threshold: 0.5 },
+    { label: '左手首', landmarks: [15], threshold: 0.4 },
+  ],
+  trunk: [
+    { label: '両肩', landmarks: [11, 12], threshold: 0.5 },
+    { label: '腰', landmarks: [23, 24], threshold: 0.5 },
+  ],
+  all: [
+    { label: '顔', landmarks: [0], threshold: 0.5 },
+    { label: '両肩', landmarks: [11, 12], threshold: 0.5 },
+    { label: '両腕（肘）', landmarks: [13, 14], threshold: 0.4 },
+    { label: '腰', landmarks: [23, 24], threshold: 0.5 },
+  ],
+};
+const READINESS_PASS_NEEDED = 15; // consecutive frames (~0.5s at 30fps)
+
 // =============================================================================
 // STATE
 // =============================================================================
@@ -791,6 +881,8 @@ let isMeasuring = false;
 let measureStartTime = 0;
 let pipActive = false;
 let pipObserver = null;
+let isCheckingReadiness = false;
+let readinessPassCount = 0;
 
 const ALPHA = 0.3;
 
@@ -1311,15 +1403,106 @@ function detectLoop() {
     updateUI(sm);
     if (isRecording) { recordFrames.push({ time: ts, metrics: { ...sm } }); }
     if (isMeasuring) { measurementData.push({ time: performance.now() - measureStartTime, metrics: { ...sm } }); }
+    if (isCheckingReadiness) { checkReadiness(result.landmarks[0]); }
   } else {
     ctx.clearRect(0, 0, overlay.width, overlay.height);
+    if (isCheckingReadiness) { readinessPassCount = 0; updateReadinessUI(null); }
   }
 }
 
 // =============================================================================
-// 30-SECOND MEASUREMENT
+// 30-SECOND MEASUREMENT (with readiness check)
 // =============================================================================
+
+// Entry point: show readiness overlay first
 function startMeasurement30() {
+  measurementData = [];
+  isMeasuring = false;
+  isCheckingReadiness = true;
+  readinessPassCount = 0;
+
+  const area = selectedArea || 'all';
+  const checks = READINESS_CHECKS[area] || READINESS_CHECKS.all;
+  const rOverlay = document.getElementById('readinessOverlay');
+  const rChecks = document.getElementById('readinessChecks');
+  const rTitle = document.getElementById('readinessTitle');
+  const rHint = document.getElementById('readinessHint');
+  const rCancel = document.getElementById('btnCancelReadiness');
+
+  rTitle.textContent = 'ポジション確認中';
+  rHint.textContent = '必要な部位をカメラに映してください';
+  rCancel.style.display = '';
+  let html = '';
+  for (const check of checks) {
+    html += `<div class="readiness-item" data-label="${check.label}">
+      <span class="ri-icon">○</span><span>${check.label}</span>
+    </div>`;
+  }
+  rChecks.innerHTML = html;
+  rOverlay.style.display = 'flex';
+}
+
+// Called from detectLoop each frame while isCheckingReadiness
+function checkReadiness(landmarks) {
+  const area = selectedArea || 'all';
+  const checks = READINESS_CHECKS[area] || READINESS_CHECKS.all;
+  let allPass = true;
+
+  const items = document.querySelectorAll('#readinessChecks .readiness-item');
+  checks.forEach((check, i) => {
+    const pass = check.anyOf
+      ? check.landmarks.some(idx => (landmarks[idx]?.visibility || 0) >= check.threshold)
+      : check.landmarks.every(idx => (landmarks[idx]?.visibility || 0) >= check.threshold);
+    if (items[i]) {
+      items[i].classList.toggle('pass', pass);
+      items[i].querySelector('.ri-icon').textContent = pass ? '✓' : '○';
+    }
+    if (!pass) allPass = false;
+  });
+
+  const hint = document.getElementById('readinessHint');
+  if (!allPass) {
+    const missing = checks.filter((_, i) => !items[i]?.classList.contains('pass'));
+    hint.textContent = missing.map(c => c.label).join('・') + ' が見えません';
+    readinessPassCount = 0;
+  } else {
+    readinessPassCount++;
+    hint.textContent = 'OK — そのまま動かないでください…';
+  }
+
+  if (readinessPassCount >= READINESS_PASS_NEEDED) {
+    isCheckingReadiness = false;
+    // Brief OK flash then start countdown
+    document.getElementById('readinessTitle').textContent = '';
+    document.getElementById('readinessChecks').innerHTML = '<div class="readiness-ok">OK!</div>';
+    document.getElementById('readinessHint').textContent = '';
+    document.getElementById('btnCancelReadiness').style.display = 'none';
+    setTimeout(() => {
+      document.getElementById('readinessOverlay').style.display = 'none';
+      beginCountdownAndMeasure();
+    }, 600);
+  }
+}
+
+// Called when no landmarks detected during readiness
+function updateReadinessUI() {
+  const items = document.querySelectorAll('#readinessChecks .readiness-item');
+  items.forEach(item => {
+    item.classList.remove('pass');
+    item.querySelector('.ri-icon').textContent = '○';
+  });
+  document.getElementById('readinessHint').textContent = '人物が検出されません — カメラの前に立ってください';
+}
+
+// Cancel readiness
+function cancelReadiness() {
+  isCheckingReadiness = false;
+  readinessPassCount = 0;
+  document.getElementById('readinessOverlay').style.display = 'none';
+}
+
+// The actual countdown + 30s measurement
+function beginCountdownAndMeasure() {
   measurementData = [];
   isMeasuring = false;
   const mOverlay = document.getElementById('measureOverlay');
@@ -1679,6 +1862,7 @@ document.getElementById('btnStartAnalysis').addEventListener('click', () => {
 document.getElementById('btnBackToSelect').addEventListener('click', () => navigateTo('select'));
 
 document.getElementById('btnBackFromLive').addEventListener('click', () => {
+  cancelReadiness();
   if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
   running = false; smoothedMetrics = null;
   navigateTo('select');
@@ -1692,6 +1876,7 @@ btnRecord.addEventListener("click", () => { if (!isRecording) startRecording(); 
 btnSnapshot.addEventListener("click", () => { captureSnapshot(null); });
 
 document.getElementById('btnMeasure30').addEventListener('click', () => { startMeasurement30(); });
+document.getElementById('btnCancelReadiness').addEventListener('click', () => { cancelReadiness(); });
 
 // Tab switching
 document.querySelectorAll(".tab").forEach(tab => {
