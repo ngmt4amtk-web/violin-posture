@@ -25,6 +25,8 @@ body {
   overflow-x: hidden; min-height: 100vh;
   -webkit-text-size-adjust: 100%;
 }
+
+/* Loading screen */
 .loading-screen {
   position: fixed; inset: 0; z-index: 1000;
   background: var(--bg);
@@ -44,6 +46,7 @@ body {
 .loading-text { margin-top: 16px; color: var(--text-dim); font-size: 14px; }
 .loading-progress { margin-top: 8px; color: var(--blue); font-size: 12px; }
 
+/* Header */
 header {
   padding: 12px 16px 8px;
   display: flex; align-items: center; justify-content: space-between;
@@ -57,6 +60,41 @@ header h1 span { color: var(--blue); }
   border-radius: 8px; font-weight: 700;
 }
 
+/* Screen system */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* S1: Focus Area Cards */
+.focus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
+.focus-card {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 16px; cursor: pointer;
+  transition: all 0.2s; text-align: center;
+}
+.focus-card:active { transform: scale(0.96); }
+.focus-card .focus-icon { font-size: 32px; margin-bottom: 8px; }
+.focus-card .focus-label { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.focus-card .focus-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+.focus-card:last-child { grid-column: 1 / -1; }
+
+/* S2: Camera Guide */
+.guide-content { padding: 16px; }
+.guide-angle-box {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 20px; margin-bottom: 12px; text-align: center;
+}
+.guide-angle-box svg { max-width: 200px; margin: 0 auto 12px; display: block; }
+.guide-angle-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.guide-angle-sub { font-size: 12px; color: var(--text-dim); }
+.guide-tips {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 14px; margin-bottom: 12px;
+}
+.guide-tips h3 { font-size: 13px; color: var(--blue); margin-bottom: 8px; }
+.guide-tips li { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin-left: 16px; }
+.guide-btn-row { padding: 0 16px 16px; }
+
+/* Camera section */
 .camera-section {
   position: relative; width: 100%;
   aspect-ratio: 4/3;
@@ -71,6 +109,7 @@ header h1 span { color: var(--blue); }
 #overlay { pointer-events: none; }
 .mirror { transform: scaleX(-1); -webkit-transform: scaleX(-1); }
 
+/* FPS badge */
 .fps-badge {
   position: absolute; top: 8px; left: 8px;
   background: rgba(0,0,0,0.7); color: var(--cyan);
@@ -78,6 +117,8 @@ header h1 span { color: var(--blue); }
   border-radius: 4px; font-family: monospace;
   z-index: 10;
 }
+
+/* Recording badge */
 .recording-badge {
   position: absolute; top: 8px; right: 8px;
   background: rgba(255,30,30,0.85); color: #fff;
@@ -88,6 +129,47 @@ header h1 span { color: var(--blue); }
 }
 @keyframes pulse { 50% { opacity: 0.5; } }
 
+/* PiP Camera */
+.camera-pip {
+  position: fixed; top: 12px; right: 12px;
+  width: 140px; height: 105px;
+  border-radius: 10px; overflow: hidden;
+  z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  border: 2px solid var(--blue); display: none; cursor: pointer;
+}
+.camera-pip video, .camera-pip canvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
+.camera-pip canvas { pointer-events: none; }
+
+/* S4: 30-second Measurement overlay */
+.measure-overlay {
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.measure-countdown {
+  font-size: 72px; font-weight: 800; color: #fff;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+}
+.measure-progress {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 4px; background: rgba(255,255,255,0.2);
+}
+.measure-progress-fill {
+  height: 100%; background: var(--blue);
+  transition: width 0.1s linear;
+}
+.measure-timer {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.7); color: #fff;
+  font-size: 14px; font-weight: 700;
+  padding: 4px 16px; border-radius: 20px; font-family: monospace;
+}
+
+/* RULA bar */
 .rula-bar {
   width: 100%; padding: 6px 16px;
   display: flex; align-items: center; gap: 10px;
@@ -116,6 +198,7 @@ header h1 span { color: var(--blue); }
   white-space: nowrap;
 }
 
+/* Controls */
 .controls {
   display: flex; gap: 8px; padding: 8px 12px;
   border-bottom: 1px solid var(--card-border);
@@ -135,6 +218,7 @@ header h1 span { color: var(--blue); }
 .btn-record.recording { animation: pulse 1s infinite; }
 .btn:disabled { opacity: 0.4; }
 
+/* Tab bar */
 .tab-bar {
   display: flex; border-bottom: 1px solid var(--card-border);
   overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -149,6 +233,7 @@ header h1 span { color: var(--blue); }
 }
 .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
 
+/* Metrics panel & cards */
 .metrics-panel {
   padding: 8px 12px 120px;
 }
@@ -192,6 +277,7 @@ header h1 span { color: var(--blue); }
   margin-top: 3px; font-style: italic;
 }
 
+/* History panel */
 .history-panel { padding: 8px 12px 120px; display: none; }
 .snapshot-card {
   background: var(--card);
@@ -220,6 +306,7 @@ header h1 span { color: var(--blue); }
   object-fit: cover; display: block;
 }
 
+/* Info panel */
 .info-panel { padding: 12px; display: none; }
 .info-section {
   background: var(--card);
@@ -237,6 +324,7 @@ header h1 span { color: var(--blue); }
 }
 .info-section ul { padding-left: 16px; }
 
+/* No camera message */
 .no-camera {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
@@ -245,6 +333,7 @@ header h1 span { color: var(--blue); }
 }
 .no-camera-icon { font-size: 40px; opacity: 0.3; }
 
+/* Camera select */
 .camera-select {
   position: absolute; bottom: 8px; left: 8px;
   background: rgba(0,0,0,0.7);
@@ -254,6 +343,7 @@ header h1 span { color: var(--blue); }
   z-index: 10; -webkit-appearance: none;
 }
 
+/* Smoothing indicator */
 .smoothing-indicator {
   position: absolute; bottom: 8px; right: 8px;
   background: rgba(0,0,0,0.7);
@@ -261,203 +351,199 @@ header h1 span { color: var(--blue); }
   padding: 2px 8px; border-radius: 4px;
   z-index: 10;
 }
+
+/* S5: Report */
+.report-content { padding: 12px 12px 120px; }
+.report-score-card {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 24px;
+  text-align: center; margin-bottom: 16px;
+}
+.report-score-value {
+  font-size: 56px; font-weight: 800; font-family: monospace;
+}
+.report-score-label {
+  font-size: 13px; color: var(--text-dim); margin-top: 4px;
+}
+.report-score-sub {
+  font-size: 12px; margin-top: 8px;
+  padding: 4px 12px; border-radius: 20px;
+  display: inline-block; font-weight: 600;
+}
+.report-metric {
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 14px; margin-bottom: 10px;
+}
+.report-metric-header {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 8px;
+}
+.report-metric-name { font-size: 14px; font-weight: 700; }
+.report-metric-stats {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px; margin-bottom: 10px;
+}
+.report-stat { text-align: center; }
+.report-stat-val { font-size: 18px; font-weight: 700; font-family: monospace; }
+.report-stat-label { font-size: 10px; color: var(--text-dim); }
+.report-chart {
+  width: 100%; height: 60px; margin-bottom: 10px;
+  border-radius: 6px; background: rgba(0,0,0,0.3);
+}
+.report-advice { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+.report-advice strong { color: var(--text); }
+.report-ref { font-size: 10px; color: var(--purple); margin-top: 6px; font-style: italic; }
+.report-worst {
+  background: rgba(255,82,82,0.1); border: 1px solid rgba(255,82,82,0.3);
+  border-radius: 12px; padding: 14px; margin-bottom: 16px;
+}
+.report-worst h3 { font-size: 13px; color: var(--red); margin-bottom: 6px; }
+.report-worst p { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.report-actions { display: flex; gap: 10px; margin-top: 16px; padding-bottom: 20px; }
 </style>
 </head>
 <body>
 
+<!-- Loading screen -->
 <div class="loading-screen" id="loadingScreen">
   <div class="loading-spinner"></div>
   <div class="loading-text">ViolinPosture を起動中...</div>
   <div class="loading-progress" id="loadingProgress">MediaPipe モデルを読み込んでいます</div>
 </div>
 
+<!-- Header -->
 <header>
   <h1><span>Violin</span>Posture</h1>
-  <div class="header-badge">研究ベース v2.0</div>
+  <div class="header-badge">研究ベース v3.0</div>
 </header>
 
-<div class="camera-section" id="cameraSection">
-  <div class="no-camera" id="noCameraMsg">
-    <div class="no-camera-icon">&#9898;</div>
-    <div>「カメラ開始」をタップしてください</div>
+<!-- ===== S1: Focus Area Selection ===== -->
+<div class="screen active" id="screenSelect">
+  <div style="padding:16px 16px 8px;">
+    <h2 style="font-size:16px;font-weight:700;">分析する部位を選択</h2>
+    <p style="font-size:12px;color:var(--text-dim);margin-top:4px;">気になる部位をタップして詳細分析を開始</p>
   </div>
-  <video id="video" autoplay muted playsinline webkit-playsinline></video>
-  <canvas id="overlay"></canvas>
-  <div class="fps-badge" id="fpsBadge" style="display:none;">-- FPS</div>
-  <div class="recording-badge" id="recordingBadge">REC</div>
-  <select class="camera-select" id="cameraSelect" style="display:none;">
-    <option value="user">前面カメラ</option>
-    <option value="environment">背面カメラ</option>
-  </select>
-  <div class="smoothing-indicator" id="smoothingInfo" style="display:none;">EMA α=0.3</div>
-</div>
-
-<div class="rula-bar" id="rulaBar">
-  <div class="rula-label">RULA総合</div>
-  <div class="rula-track"><div class="rula-fill" id="rulaFill"></div></div>
-  <div class="rula-score" id="rulaScore">--</div>
-  <div class="rula-level" id="rulaLevel" style="background:var(--card-border);color:var(--text-dim);">待機中</div>
-</div>
-
-<div class="controls">
-  <button class="btn btn-primary" id="btnCamera">カメラ開始</button>
-  <button class="btn btn-record" id="btnRecord" disabled>録画 5秒</button>
-  <button class="btn" id="btnSnapshot" disabled>撮影</button>
-</div>
-
-<div class="tab-bar">
-  <div class="tab active" data-panel="metrics">リアルタイム分析</div>
-  <div class="tab" data-panel="history">履歴</div>
-  <div class="tab" data-panel="info">研究根拠</div>
-</div>
-
-<div class="metrics-panel" id="metricsPanel">
-  <div class="metric-card status-none" id="card-cva">
-    <div class="metric-header">
-      <div class="metric-name">1. 頭頸角 (CVA)</div>
-      <div class="metric-badge" id="badge-cva">--</div>
-    </div>
-    <div class="metric-value" id="val-cva">--°</div>
-    <div class="metric-detail">前方頭位の検出。耳-肩ラインと水平線の角度。</div>
-    <div class="metric-ref">基準: >53°正常 / 48-53°注意 / <48°警告 (PMC6296804)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-headtilt">
-    <div class="metric-header">
-      <div class="metric-name">2. 頭部側方傾斜</div>
-      <div class="metric-badge" id="badge-headtilt">--</div>
-    </div>
-    <div class="metric-value" id="val-headtilt">--°</div>
-    <div class="metric-detail">左右の耳の高低差から算出。演奏中は左傾斜しやすい。</div>
-    <div class="metric-ref">基準: <5°正常 / 5-10°注意 / >10°警告 (Mann et al. 2023)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-headrot">
-    <div class="metric-header">
-      <div class="metric-name">3. 頭部回旋推定</div>
-      <div class="metric-badge" id="badge-headrot">--</div>
-    </div>
-    <div class="metric-value" id="val-headrot">--°</div>
-    <div class="metric-detail">鼻と両耳の位置関係から左回旋度を推定。</div>
-    <div class="metric-ref">基準: <15°正常 / 15-30°注意 / >30°警告 (Mann et al. 2023)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-lshoulder">
-    <div class="metric-header">
-      <div class="metric-name">4. 左肩挙上</div>
-      <div class="metric-badge" id="badge-lshoulder">--</div>
-    </div>
-    <div class="metric-value" id="val-lshoulder">--</div>
-    <div class="metric-detail">左肩の上方偏位。バイオリニスト最大の悪習慣。</div>
-    <div class="metric-ref">基準: <3%正常 / 3-6%注意 / >6%警告 (PMC3718408, PMC8842773)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-shouldersym">
-    <div class="metric-header">
-      <div class="metric-name">5. 肩高左右非対称</div>
-      <div class="metric-badge" id="badge-shouldersym">--</div>
-    </div>
-    <div class="metric-value" id="val-shouldersym">--°</div>
-    <div class="metric-detail">左右肩のY座標差を角度換算。肩甲上腕関節への負荷指標。</div>
-    <div class="metric-ref">基準: <5°正常 / 5-10°注意 / >10°警告 (PMC8842773)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-relbow">
-    <div class="metric-header">
-      <div class="metric-name">6. 右肘高さ（弓腕）</div>
-      <div class="metric-badge" id="badge-relbow">--</div>
-    </div>
-    <div class="metric-value" id="val-relbow">--</div>
-    <div class="metric-detail">右上腕の外転角。45°以下が推奨、60°超で負荷増大。</div>
-    <div class="metric-ref">基準: <45°正常 / 45-60°注意 / >60°警告 (Berque et al. 2005)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-lelbow">
-    <div class="metric-header">
-      <div class="metric-name">7. 左肘角度（指板腕）</div>
-      <div class="metric-badge" id="badge-lelbow">--</div>
-    </div>
-    <div class="metric-value" id="val-lelbow">--°</div>
-    <div class="metric-detail">肩-肘-手首の角度。適切な屈曲が演奏性と健康に重要。</div>
-    <div class="metric-ref">基準: 50-80°正常 / 40-50°又は80-95°注意 / その他警告 (PMC4636401)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-lwrist">
-    <div class="metric-header">
-      <div class="metric-name">8. 左手首直線性</div>
-      <div class="metric-badge" id="badge-lwrist">--</div>
-    </div>
-    <div class="metric-value" id="val-lwrist">--°</div>
-    <div class="metric-detail">前腕-手首-指の直線からの偏位。腱鞘炎リスク因子。</div>
-    <div class="metric-ref">基準: <10°正常 / 10-20°注意 / >20°警告 (PMC7582398)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-trunk">
-    <div class="metric-header">
-      <div class="metric-name">9. 体幹側方傾斜</div>
-      <div class="metric-badge" id="badge-trunk">--</div>
-    </div>
-    <div class="metric-value" id="val-trunk">--°</div>
-    <div class="metric-detail">腰-肩ラインの垂直からの偏位。脊柱側弯リスク指標。</div>
-    <div class="metric-ref">基準: <5°正常 / 5-10°注意 / >10°警告 (Moraes & Papini 2012)</div>
-  </div>
-
-  <div class="metric-card status-none" id="card-pelvic">
-    <div class="metric-header">
-      <div class="metric-name">10. 骨盤水平</div>
-      <div class="metric-badge" id="badge-pelvic">--</div>
-    </div>
-    <div class="metric-value" id="val-pelvic">--°</div>
-    <div class="metric-detail">左右の腰のY座標差。体重偏位や脊柱回旋の基底指標。</div>
-    <div class="metric-ref">基準: <3°正常 / 3-5°注意 / >5°警告</div>
+  <div class="focus-grid" id="focusGrid">
+    <!-- Populated by JS -->
   </div>
 </div>
 
-<div class="history-panel" id="historyPanel">
-  <div id="historyList" style="color:var(--text-dim);font-size:13px;text-align:center;padding:40px 0;">
-    まだ記録がありません。「録画 5秒」または「撮影」で記録を作成してください。
+<!-- ===== S2: Camera Guide ===== -->
+<div class="screen" id="screenGuide">
+  <div class="guide-content" id="guideContent">
+    <!-- Populated dynamically by JS -->
+  </div>
+  <div class="guide-btn-row">
+    <button class="btn btn-primary" id="btnStartAnalysis" style="width:100%;padding:14px;font-size:15px;">カメラを起動して分析開始</button>
+    <button class="btn" id="btnBackToSelect" style="width:100%;margin-top:8px;">部位を選び直す</button>
   </div>
 </div>
 
-<div class="info-panel" id="infoPanel">
-  <div class="info-section">
-    <h3>このアプリについて</h3>
-    <p>学術研究に基づくバイオリン奏者専用の姿勢分析システムです。MediaPipe Pose Landmarkerによる33点のボディランドマーク検出を用い、演奏関連筋骨格障害(PRMDs)のリスク因子をリアルタイムで評価します。</p>
+<!-- ===== S3: Live Analysis ===== -->
+<div class="screen" id="screenLive">
+  <div class="camera-section" id="cameraSection">
+    <div class="no-camera" id="noCameraMsg">
+      <div class="no-camera-icon">&#9898;</div>
+      <div>カメラを起動中...</div>
+    </div>
+    <video id="video" autoplay muted playsinline webkit-playsinline></video>
+    <canvas id="overlay"></canvas>
+    <div class="fps-badge" id="fpsBadge" style="display:none;">-- FPS</div>
+    <div class="recording-badge" id="recordingBadge">REC</div>
+    <select class="camera-select" id="cameraSelect" style="display:none;">
+      <option value="user">前面カメラ</option>
+      <option value="environment">背面カメラ</option>
+    </select>
+    <div class="smoothing-indicator" id="smoothingInfo" style="display:none;">EMA α=0.3</div>
+    <!-- Measurement overlay -->
+    <div class="measure-overlay" id="measureOverlay" style="display:none;">
+      <div class="measure-countdown" id="measureCountdown"></div>
+      <div class="measure-timer" id="measureTimer" style="display:none;">00:00</div>
+      <div class="measure-progress"><div class="measure-progress-fill" id="measureProgress"></div></div>
+    </div>
   </div>
-  <div class="info-section">
-    <h3>RULA（簡易上肢評価）スコアについて</h3>
-    <p>RULA(Rapid Upper Limb Assessment)は人間工学的リスクの国際標準評価法です。本アプリでは各指標のステータスを統合し、1-7のスコアに変換しています。</p>
-    <ul>
-      <li>1-2: 許容範囲 — 良好な姿勢</li>
-      <li>3-4: 要観察 — 改善を検討</li>
-      <li>5-6: 要改善 — 早期に姿勢修正を</li>
-      <li>7: 要即時対応 — 直ちに姿勢を修正</li>
-    </ul>
+
+  <div class="rula-bar" id="rulaBar">
+    <div class="rula-label">RULA総合</div>
+    <div class="rula-track"><div class="rula-fill" id="rulaFill"></div></div>
+    <div class="rula-score" id="rulaScore">--</div>
+    <div class="rula-level" id="rulaLevel" style="background:var(--card-border);color:var(--text-dim);">待機中</div>
   </div>
-  <div class="info-section">
-    <h3>主要参考文献</h3>
-    <ul>
-      <li>Kok LM et al. (2013) — バイオリニストの筋骨格障害系統レビュー (PMC3718408)</li>
-      <li>Mann S et al. (2023) — 人間工学的顎当ての生体力学研究</li>
-      <li>Schoonderwaldt E et al. (2015) — ポジション移動の生体力学 (PMC4636401)</li>
-      <li>Tondini et al. (2022) — 右肩甲上腕関節力の分析 (PMC8842773)</li>
-      <li>Woldendorp KH et al. (2021) — 演奏関連運動障害の神経力学レビュー (PMC7582398)</li>
-      <li>Moraes GFS & Papini AL (2012) — バイオリニストの脊柱彎曲と体幹非対称</li>
-      <li>Stöckel T & Fries U (2023) — 左腕肩の代償運動 (PMC9901209)</li>
-      <li>Berque P et al. (2005) — 肩関節と筋の3D運動学的暴露分析</li>
-      <li>CVA基準値: PMC6296804, PMC11042887</li>
-    </ul>
+
+  <div class="controls">
+    <button class="btn" id="btnBackFromLive">戻る</button>
+    <button class="btn btn-primary" id="btnMeasure30">30秒測定</button>
+    <button class="btn" id="btnSnapshot">撮影</button>
+    <button class="btn btn-record" id="btnRecord">録画 5秒</button>
   </div>
-  <div class="info-section">
-    <h3>使い方のコツ</h3>
-    <ul>
-      <li>明るい場所で使用してください</li>
-      <li>カメラから1.5-2m離れると精度が向上します</li>
-      <li>上半身全体（頭〜腰）が映る位置が理想的です</li>
-      <li>背面カメラで撮影してもらうとより正確です</li>
-      <li>前面カメラは左右反転表示されます</li>
-    </ul>
+
+  <div class="tab-bar">
+    <div class="tab active" data-panel="metrics">リアルタイム分析</div>
+    <div class="tab" data-panel="history">履歴</div>
+    <div class="tab" data-panel="info">研究根拠</div>
   </div>
+
+  <div class="metrics-panel" id="metricsPanel">
+    <!-- Metric cards generated by JS based on selected focus area -->
+    <div id="metricCards"></div>
+  </div>
+
+  <div class="history-panel" id="historyPanel">
+    <div id="historyList" style="color:var(--text-dim);font-size:13px;text-align:center;padding:40px 0;">
+      まだ記録がありません。「録画 5秒」または「撮影」で記録を作成してください。
+    </div>
+  </div>
+
+  <div class="info-panel" id="infoPanel">
+    <div class="info-section">
+      <h3>このアプリについて</h3>
+      <p>学術研究に基づくバイオリン奏者専用の姿勢分析システムです。MediaPipe Pose Landmarkerによる33点のボディランドマーク検出を用い、演奏関連筋骨格障害(PRMDs)のリスク因子をリアルタイムで評価します。</p>
+    </div>
+    <div class="info-section">
+      <h3>RULA（簡易上肢評価）スコアについて</h3>
+      <p>RULA(Rapid Upper Limb Assessment)は人間工学的リスクの国際標準評価法です。本アプリでは各指標のステータスを統合し、1-7のスコアに変換しています。</p>
+      <ul>
+        <li>1-2: 許容範囲 — 良好な姿勢</li>
+        <li>3-4: 要観察 — 改善を検討</li>
+        <li>5-6: 要改善 — 早期に姿勢修正を</li>
+        <li>7: 要即時対応 — 直ちに姿勢を修正</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h3>主要参考文献</h3>
+      <ul>
+        <li>Kok LM et al. (2013) — バイオリニストの筋骨格障害系統レビュー (PMC3718408)</li>
+        <li>Mann S et al. (2023) — 人間工学的顎当ての生体力学研究</li>
+        <li>Schoonderwaldt E et al. (2015) — ポジション移動の生体力学 (PMC4636401)</li>
+        <li>Tondini et al. (2022) — 右肩甲上腕関節力の分析 (PMC8842773)</li>
+        <li>Woldendorp KH et al. (2021) — 演奏関連運動障害の神経力学レビュー (PMC7582398)</li>
+        <li>Moraes GFS &amp; Papini AL (2012) — バイオリニストの脊柱彎曲と体幹非対称</li>
+      </ul>
+    </div>
+    <div class="info-section">
+      <h3>使い方のコツ</h3>
+      <ul>
+        <li>明るい場所で使用してください</li>
+        <li>カメラから1.5-2m離れると精度が向上します</li>
+        <li>上半身全体（頭〜腰）が映る位置が理想的です</li>
+        <li>背面カメラで撮影してもらうとより正確です</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===== S5: Detailed Report ===== -->
+<div class="screen" id="screenReport">
+  <div class="report-content" id="reportContent">
+    <!-- Generated dynamically by JS -->
+  </div>
+</div>
+
+<!-- PiP Camera (shown when scrolling away from camera in live mode) -->
+<div class="camera-pip" id="cameraPip">
+  <video id="videoPip" autoplay muted playsinline webkit-playsinline></video>
+  <canvas id="overlayPip"></canvas>
 </div>
 
 <script type="module">
@@ -466,6 +552,190 @@ import {
   FilesetResolver,
   DrawingUtils
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
+// =============================================================================
+// FOCUS AREAS DATA
+// =============================================================================
+const FOCUS_AREAS = {
+  head: {
+    label: '頭部・首', icon: '🎯',
+    desc: 'CVA（前方頭位）・頭部傾斜・頭部回旋',
+    metrics: ['cva', 'headTilt', 'headRot'],
+    skeletonHighlight: [0,1,2,3,4,5,6,7,8,9,10,11,12],
+    cameraGuide: {
+      angle: '側面（右側から）', distance: '1.5〜2m',
+      visibleParts: '頭部・首・肩が明確に見える位置',
+      tips: ['髪が耳にかかる場合は耳にかけてください','顎当てに顎を乗せた状態で撮影','自然な演奏姿勢を保ってください','カメラは肩の高さに設置'],
+      svgAngle: 'side'
+    },
+    deepAnalysis: {
+      overview: 'バイオリン演奏では楽器を左顎で支えるため、頭頸部に特有の負荷パターンが生じます。前方頭位（Forward Head Posture）と左側方傾斜の組み合わせは、僧帽筋・胸鎖乳突筋への慢性的な過負荷を引き起こします。',
+      metrics: {
+        cva: {
+          name: '頭頸角 (CVA)',
+          goodAdvice: '良好な頭頸アライメントです。このポジションを維持することで、頸椎への負荷を最小限に抑えられています。',
+          warnAdvice: '軽度の前方頭位が見られます。顎を引く意識（チンタック）を持ちましょう。肩当ての高さ調整も検討してください。',
+          badAdvice: '顕著な前方頭位です。演奏中に頭が前に突き出ています。肩当て・顎当てのフィッティング見直しが必要です。頸椎症のリスクが上昇します。',
+          tips: ['チンタック（顎引き）エクササイズを日常的に実践','肩当ての高さを上げて顎当てへの圧迫を軽減','演奏中に定期的に首の位置をリセット','鏡を見ながら練習して頭部位置を確認'],
+          ref: 'Yip et al. (2008) PMC6296804 — CVA>53°が正常、<48°で前方頭位と判定。'
+        },
+        headTilt: {
+          name: '頭部側方傾斜',
+          goodAdvice: '頭部が安定した中立位を保っています。左右バランスの良い楽器保持ができています。',
+          warnAdvice: '軽度の側方傾斜があります。楽器を顎で「挟みすぎない」意識を持ちましょう。',
+          badAdvice: '過度な頭部傾斜です。首の筋肉に不均衡な負荷がかかっています。顎当て形状の見直しを強く推奨します。',
+          tips: ['顎当ての高さ・角度を再調整','演奏中に首を「預ける」のではなく「添える」意識','休憩時に首の側屈ストレッチ','楽器の重さは鎖骨で支え、顎は方向制御に使う'],
+          ref: 'Mann S et al. (2023) — 頭部傾斜10°以上で頸部筋群の疲労加速。'
+        },
+        headRot: {
+          name: '頭部回旋推定',
+          goodAdvice: '適度な回旋範囲です。視線と楽器の位置関係が良好です。',
+          warnAdvice: '回旋がやや大きめです。肩当て位置を体の中心寄りにずらすと改善する場合があります。',
+          badAdvice: '過度な頭部回旋です。頸椎の回旋制限域に近づいており、椎間板への圧迫リスクがあります。',
+          tips: ['楽器の位置を体の中心寄りに調整','譜面台の位置を正面よりやや左に','鏡を前方に置いて回旋量を自覚','演奏前に頸椎モビリティエクササイズ'],
+          ref: 'Mann S et al. (2023) — 頭部回旋30°超で症状発現リスク上昇。'
+        }
+      }
+    }
+  },
+  shoulders: {
+    label: '肩', icon: '💪',
+    desc: '左肩挙上・肩左右非対称',
+    metrics: ['lShoulderElev', 'shoulderSym'],
+    skeletonHighlight: [11,12,13,14,23,24],
+    cameraGuide: {
+      angle: '正面', distance: '1.5〜2m',
+      visibleParts: '両肩・上腕が完全に見える位置',
+      tips: ['両肩が画面内に収まるように','背景はシンプルな壁が理想的','演奏中の自然な姿勢で撮影','カメラは胸の高さに設置'],
+      svgAngle: 'front'
+    },
+    deepAnalysis: {
+      overview: 'バイオリン演奏時の肩の問題は最も一般的な愁訴です。左肩の挙上と肩の左右非対称は、僧帽筋上部線維の過緊張を引き起こし、肩こり・頸部痛の主要因となります。',
+      metrics: {
+        lShoulderElev: {
+          name: '左肩挙上',
+          goodAdvice: '左肩が適切な高さに維持されています。楽器を肩と鎖骨で自然に支持できています。',
+          warnAdvice: '左肩がやや上がっています。僧帽筋上部の緊張を意識的にリリースしましょう。',
+          badAdvice: '左肩が顕著に挙上しています。僧帽筋・肩甲挙筋への慢性的な過負荷状態です。肩当ての再調整が最優先です。',
+          tips: ['肩当ての高さを上げて肩の挙上を不要にする','演奏前に肩の上げ下げで脱力を確認','長いフレーズの区切りで意識的に肩を下ろす','鎖骨の存在を意識して楽器を載せる'],
+          ref: 'Kok LM et al. (2013) PMC3718408 — バイオリニストの62-93%が筋骨格症状を報告。'
+        },
+        shoulderSym: {
+          name: '肩高左右非対称',
+          goodAdvice: '肩の左右バランスが良好です。体幹の安定した支持基盤ができています。',
+          warnAdvice: '肩の左右差がやや大きいです。体重の左右均等配分を意識しましょう。',
+          badAdvice: '顕著な肩の左右非対称です。脊柱側弯のリスクファクターとなります。',
+          tips: ['両足均等荷重を意識','演奏後に両肩を回す対称的なストレッチ','肩当て高さの微調整で左右差を軽減','体幹トレーニングで安定性向上'],
+          ref: 'Moraes GFS & Papini AL (2012) — 脊柱非対称と肩高差の相関。'
+        }
+      }
+    }
+  },
+  'bow-arm': {
+    label: '弓腕（右腕）', icon: '🎻',
+    desc: '右肘外転角度',
+    metrics: ['rElbowAbd'],
+    skeletonHighlight: [12,14,16,18,20,22],
+    cameraGuide: {
+      angle: '正面またはやや右斜め前', distance: '2〜2.5m',
+      visibleParts: '右腕全体（肩〜手先）が見える位置',
+      tips: ['弓を持った状態で撮影','各弦での運弓を比較すると効果的','できるだけ全弓で弾いている状態を測定','カメラは胸の高さに設置'],
+      svgAngle: 'front'
+    },
+    deepAnalysis: {
+      overview: '弓腕（右腕）の動きは音色と直結します。過度な肘の外転は三角筋・棘上筋への負荷を増大させ、インピンジメント症候群のリスクを高めます。',
+      metrics: {
+        rElbowAbd: {
+          name: '右肘外転角度',
+          goodAdvice: '弓腕の外転角度が適切な範囲です。効率的な運弓ができています。',
+          warnAdvice: '肘がやや高めです。意識的に肘を下げ、前腕の回旋で弓をコントロールしましょう。',
+          badAdvice: '肘の外転が過大です。インピンジメント症候群のリスクが高い状態です。運弓メカニクスの見直しが必要です。',
+          tips: ['肘は「ぶら下がる」感覚を保つ','G線でも肘を上げすぎない — 前腕の回内で対応','鏡で右腕のシルエットを確認','上腕は体側に近く保ちつつ前腕で操作'],
+          ref: 'Berque P et al. (2005) — 45°以下が理想、60°超で肩関節負荷急増。'
+        }
+      }
+    }
+  },
+  'finger-arm': {
+    label: '指板腕（左腕）', icon: '✋',
+    desc: '左肘角度・左手首偏位',
+    metrics: ['lElbowAngle', 'lWristDev'],
+    skeletonHighlight: [11,13,15,17,19,21],
+    cameraGuide: {
+      angle: '正面', distance: '1.5〜2m',
+      visibleParts: '左腕全体（肩〜指先）が見える位置',
+      tips: ['楽器を構えた状態で撮影','ポジション移動中も測定すると有用','指が指板上にある状態がベスト','手首が隠れないよう角度に注意'],
+      svgAngle: 'front'
+    },
+    deepAnalysis: {
+      overview: '左腕は精密な指の運動と楽器支持を同時に担います。肘の角度と手首の直線性は、運指の効率性と腱鞘炎・手根管症候群の予防に直結します。',
+      metrics: {
+        lElbowAngle: {
+          name: '左肘角度',
+          goodAdvice: '肘の角度が理想的な範囲です。効率的なポジション移動が可能な状態です。',
+          warnAdvice: '肘角度が基準範囲からやや外れています。ポジション変更時の肘の先導を意識しましょう。',
+          badAdvice: '肘角度が推奨範囲を大きく逸脱しています。上腕二頭筋の過緊張リスクがあります。',
+          tips: ['ポジション移動は「肘先導」で行う','第1ポジションでの自然な肘角度を鏡で確認','高ポジションでは肘を体の下に送り込む','肘の位置がネックの下にくることを意識'],
+          ref: 'Schoonderwaldt E et al. (2015) PMC4636401 — 肘角50-80°が機能的最適範囲。'
+        },
+        lWristDev: {
+          name: '左手首偏位',
+          goodAdvice: '手首がほぼ直線的に保たれています。腱への負荷が最小限の理想的な状態です。',
+          warnAdvice: '手首にやや偏位があります。前腕-手首-指のラインを意識しましょう。',
+          badAdvice: '手首の偏位が大きいです。腱鞘炎・手根管症候群のリスクが高い状態です。',
+          tips: ['手首を「折らない」— 前腕の延長線上に手を保つ','親指の位置を見直す','ビブラートは手首ではなく腕全体の動きで','休憩時に手首の屈伸ストレッチ'],
+          ref: 'Woldendorp KH et al. (2021) PMC7582398 — 手首偏位20°超で腱鞘炎リスク3倍。'
+        }
+      }
+    }
+  },
+  trunk: {
+    label: '体幹・骨盤', icon: '🧍',
+    desc: '体幹傾斜・骨盤水平',
+    metrics: ['trunkLean', 'pelvicTilt'],
+    skeletonHighlight: [11,12,23,24,25,26],
+    cameraGuide: {
+      angle: '正面', distance: '2〜3m',
+      visibleParts: '頭部〜膝が見える全身に近いフレーミング',
+      tips: ['立奏の場合は足元まで映すと理想的','座奏の場合は椅子に座った状態で','自然な演奏姿勢を保って撮影','カメラは腰の高さに設置'],
+      svgAngle: 'front'
+    },
+    deepAnalysis: {
+      overview: '体幹と骨盤は演奏姿勢の土台です。体幹の側方傾斜や骨盤の非対称は、上半身すべてのアライメントに影響し、長時間演奏での腰痛の主要因となります。',
+      metrics: {
+        trunkLean: {
+          name: '体幹側方傾斜',
+          goodAdvice: '体幹が安定した垂直位を保っています。上半身の良い基盤ができています。',
+          warnAdvice: '体幹にやや側方傾斜があります。重心の左右配分を意識しましょう。',
+          badAdvice: '体幹の側方傾斜が大きいです。脊柱への非対称な負荷が継続しています。腰痛リスクが高い状態です。',
+          tips: ['両足均等荷重を意識する','骨盤を水平に保つ意識から始める','腹横筋の軽い活性化（お腹を軽く引き込む）','演奏中の鏡チェックを習慣化'],
+          ref: 'Moraes GFS & Papini AL (2012) — 体幹傾斜と脊柱彎曲の相関分析。'
+        },
+        pelvicTilt: {
+          name: '骨盤水平',
+          goodAdvice: '骨盤が水平に保たれています。脊柱の自然な彎曲を維持できています。',
+          warnAdvice: '骨盤にやや傾斜があります。座面の平坦性や足の位置を確認しましょう。',
+          badAdvice: '骨盤の傾斜が大きいです。脊柱のS字カーブが崩れている可能性があります。',
+          tips: ['座奏：座面にウェッジクッションを使用','立奏：足幅を肩幅程度に開く','片足重心を避け両足均等荷重','骨盤底筋群の意識で安定性向上'],
+          ref: '骨盤傾斜3°以上で腰椎への非対称負荷が増大。'
+        }
+      }
+    }
+  }
+};
+
+const METRIC_DEFS = {
+  cva: { id:'cva', name:'頭頸角 (CVA)', unit:'°', detail:'前方頭位の検出。耳-肩ラインと水平線の角度。', ref:'基準: >53°正常 / 48-53°注意 / <48°警告', getValue:m=>m.cva, getStatus:m=>m.cvaStatus },
+  headTilt: { id:'headtilt', name:'頭部側方傾斜', unit:'°', detail:'左右の耳の高低差から算出。', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>Math.abs(m.headTilt), getStatus:m=>m.headTiltStatus },
+  headRot: { id:'headrot', name:'頭部回旋推定', unit:'°', detail:'鼻と両耳の位置関係から左回旋度を推定。', ref:'基準: <15°正常 / 15-30°注意 / >30°警告', getValue:m=>Math.abs(m.headRot), getStatus:m=>m.headRotStatus },
+  lShoulderElev: { id:'lshoulder', name:'左肩挙上', unit:'%', detail:'左肩の上方偏位。バイオリニスト最大の悪習慣。', ref:'基準: <3%正常 / 3-6%注意 / >6%警告', getValue:m=>m.lShoulderElev, getStatus:m=>m.lShoulderStatus },
+  shoulderSym: { id:'shouldersym', name:'肩高左右非対称', unit:'°', detail:'左右肩のY座標差を角度換算。', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>m.shoulderSym, getStatus:m=>m.shoulderSymStatus },
+  rElbowAbd: { id:'relbow', name:'右肘外転（弓腕）', unit:'°', detail:'右上腕の外転角。45°以下推奨。', ref:'基準: <45°正常 / 45-60°注意 / >60°警告', getValue:m=>m.rElbowAbd, getStatus:m=>m.rElbowStatus },
+  lElbowAngle: { id:'lelbow', name:'左肘角度（指板腕）', unit:'°', detail:'肩-肘-手首の角度。', ref:'基準: 50-80°正常 / 40-50°or80-95°注意', getValue:m=>m.lElbowAngle, getStatus:m=>m.lElbowStatus },
+  lWristDev: { id:'lwrist', name:'左手首偏位', unit:'°', detail:'前腕-手首-指の直線からの偏位。', ref:'基準: <10°正常 / 10-20°注意 / >20°警告', getValue:m=>m.lWristDev, getStatus:m=>m.lWristStatus },
+  trunkLean: { id:'trunk', name:'体幹側方傾斜', unit:'°', detail:'腰-肩ラインの垂直からの偏位。', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>Math.abs(m.trunkLean), getStatus:m=>m.trunkStatus },
+  pelvicTilt: { id:'pelvic', name:'骨盤水平', unit:'°', detail:'左右の腰のY座標差。', ref:'基準: <3°正常 / 3-5°注意 / >5°警告', getValue:m=>m.pelvicTilt, getStatus:m=>m.pelvicStatus }
+};
 
 // =============================================================================
 // STATE
@@ -484,8 +754,15 @@ let recordFrames = [];
 let snapshots = [];
 let facingMode = "user";
 let smoothedMetrics = null;
+let selectedArea = null;
+let currentScreen = 'select';
+let measurementData = [];
+let isMeasuring = false;
+let measureStartTime = 0;
+let pipActive = false;
+let pipObserver = null;
 
-const ALPHA = 0.3; // EMA smoothing factor
+const ALPHA = 0.3;
 
 // DOM refs
 const video = document.getElementById("video");
@@ -493,7 +770,6 @@ const overlay = document.getElementById("overlay");
 const ctx = overlay.getContext("2d");
 const fpsBadge = document.getElementById("fpsBadge");
 const recordingBadge = document.getElementById("recordingBadge");
-const btnCamera = document.getElementById("btnCamera");
 const btnRecord = document.getElementById("btnRecord");
 const btnSnapshot = document.getElementById("btnSnapshot");
 const cameraSelect = document.getElementById("cameraSelect");
@@ -510,26 +786,20 @@ async function init() {
     const vision = await FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
     );
-
     loadingProgress.textContent = "姿勢推定モデルを読み込み中...（初回は30秒ほどかかります）";
     poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
         delegate: "GPU"
       },
-      runningMode: "VIDEO",
-      numPoses: 1,
-      minPoseDetectionConfidence: 0.5,
-      minPosePresenceConfidence: 0.5,
-      minTrackingConfidence: 0.5,
+      runningMode: "VIDEO", numPoses: 1,
+      minPoseDetectionConfidence: 0.5, minPosePresenceConfidence: 0.5, minTrackingConfidence: 0.5,
       outputSegmentationMasks: false
     });
-
     drawingUtils = new DrawingUtils(ctx);
     loadingProgress.textContent = "準備完了";
     setTimeout(() => loadingScreen.classList.add("hidden"), 400);
   } catch (e) {
-    // Fallback to CPU if GPU fails
     try {
       loadingProgress.textContent = "GPU初期化失敗、CPUモードで再試行中...";
       const vision = await FilesetResolver.forVisionTasks(
@@ -540,11 +810,8 @@ async function init() {
           modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
           delegate: "CPU"
         },
-        runningMode: "VIDEO",
-        numPoses: 1,
-        minPoseDetectionConfidence: 0.5,
-        minPosePresenceConfidence: 0.5,
-        minTrackingConfidence: 0.5,
+        runningMode: "VIDEO", numPoses: 1,
+        minPoseDetectionConfidence: 0.5, minPosePresenceConfidence: 0.5, minTrackingConfidence: 0.5,
         outputSegmentationMasks: false
       });
       drawingUtils = new DrawingUtils(ctx);
@@ -560,20 +827,16 @@ async function init() {
 // CAMERA
 // =============================================================================
 async function startCamera() {
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-  }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); }
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
       audio: false
     });
     video.srcObject = stream;
-
     const isMirrored = facingMode === "user";
     video.classList.toggle("mirror", isMirrored);
     overlay.classList.toggle("mirror", isMirrored);
-
     video.addEventListener("loadeddata", onVideoReady, { once: true });
     video.addEventListener("canplay", onVideoReady, { once: true });
   } catch (e) {
@@ -592,7 +855,6 @@ function onVideoReady() {
   smoothingInfo.style.display = "block";
   btnRecord.disabled = false;
   btnSnapshot.disabled = false;
-  btnCamera.textContent = "カメラ切替";
   detectLoop();
 }
 
@@ -601,11 +863,7 @@ function onVideoReady() {
 // =============================================================================
 function rad2deg(r) { return r * 180 / Math.PI; }
 function deg2rad(d) { return d * Math.PI / 180; }
-
-function angle2D(ax, ay, bx, by) {
-  return Math.atan2(by - ay, bx - ax);
-}
-
+function angle2D(ax, ay, bx, by) { return Math.atan2(by - ay, bx - ax); }
 function angleBetween3(ax, ay, bx, by, cx, cy) {
   const ba = { x: ax - bx, y: ay - by };
   const bc = { x: cx - bx, y: cy - by };
@@ -613,384 +871,347 @@ function angleBetween3(ax, ay, bx, by, cx, cy) {
   const magBA = Math.sqrt(ba.x * ba.x + ba.y * ba.y);
   const magBC = Math.sqrt(bc.x * bc.x + bc.y * bc.y);
   if (magBA === 0 || magBC === 0) return 0;
-  const cosAngle = Math.max(-1, Math.min(1, dot / (magBA * magBC)));
-  return rad2deg(Math.acos(cosAngle));
+  return rad2deg(Math.acos(Math.max(-1, Math.min(1, dot / (magBA * magBC)))));
 }
-
-function ema(prev, curr, alpha) {
-  if (prev === null) return curr;
-  return prev + alpha * (curr - prev);
-}
+function ema(prev, curr, alpha) { if (prev === null) return curr; return prev + alpha * (curr - prev); }
 
 // =============================================================================
-// POSTURE ANALYSIS — Research-based metrics
+// POSTURE ANALYSIS
 // =============================================================================
 function analyzePosture(landmarks) {
-  const w = overlay.width;
-  const h = overlay.height;
-  const isMirrored = facingMode === "user";
-
-  // Helper: pixel coords. When mirrored, MediaPipe still outputs non-mirrored coords
-  // so landmarks are in the original camera frame (not mirrored).
-  // For a front camera (selfie): MediaPipe left = viewer's right (person's left)
-  // Standard violin: held on player's LEFT side, bow in RIGHT hand
-  // In front-camera MediaPipe output:
-  //   Landmark 11 = person's left shoulder (violin side)
-  //   Landmark 12 = person's right shoulder (bow side)
-  const px = (lm) => lm.x * w;
-  const py = (lm) => lm.y * h;
-
-  const nose = landmarks[0];
-  const lEar = landmarks[7];   // person's left ear
-  const rEar = landmarks[8];   // person's right ear
-  const lShoulder = landmarks[11]; // person's left (violin side)
-  const rShoulder = landmarks[12]; // person's right (bow side)
-  const lElbow = landmarks[13];
-  const rElbow = landmarks[14];
-  const lWrist = landmarks[15];
-  const rWrist = landmarks[16];
-  const lIndex = landmarks[19];
-  const rIndex = landmarks[20];
-  const lHip = landmarks[23];
-  const rHip = landmarks[24];
-
+  const w = overlay.width, h = overlay.height;
+  const px = (lm) => lm.x * w, py = (lm) => lm.y * h;
+  const nose=landmarks[0], lEar=landmarks[7], rEar=landmarks[8];
+  const lShoulder=landmarks[11], rShoulder=landmarks[12];
+  const lElbow=landmarks[13], rElbow=landmarks[14];
+  const lWrist=landmarks[15], rWrist=landmarks[16];
+  const lIndex=landmarks[19], rIndex=landmarks[20];
+  const lHip=landmarks[23], rHip=landmarks[24];
   const results = {};
-
-  // --- 1. CVA (Craniovertebral Angle) ---
-  // Use the ear closer to camera (more visible). For front camera, use ear with higher visibility.
-  const useLeftEar = (lEar.visibility || 0) >= (rEar.visibility || 0);
+  const useLeftEar = (lEar.visibility||0) >= (rEar.visibility||0);
   const ear = useLeftEar ? lEar : rEar;
   const shoulder = useLeftEar ? lShoulder : rShoulder;
-  const cvaRad = Math.atan2(py(shoulder) - py(ear), Math.abs(px(ear) - px(shoulder)));
-  const cva = rad2deg(cvaRad);
-  results.cva = cva;
-  results.cvaStatus = cva > 53 ? "good" : cva > 48 ? "warn" : "bad";
-
-  // --- 2. Head Lateral Tilt ---
-  const earDy = py(lEar) - py(rEar);
-  const earDx = px(rEar) - px(lEar);
-  const headTilt = rad2deg(Math.atan2(earDy, earDx));
-  results.headTilt = headTilt;
-  const absHeadTilt = Math.abs(headTilt);
-  results.headTiltStatus = absHeadTilt < 5 ? "good" : absHeadTilt < 10 ? "warn" : "bad";
-
-  // --- 3. Head Rotation Estimation ---
-  // In a front-facing view, if head rotates left, the right ear becomes more visible
-  // and the nose shifts toward the left ear. We estimate rotation from the ratio
-  // of nose-to-ear distances.
-  const noseToLEar = Math.sqrt((px(nose)-px(lEar))**2 + (py(nose)-py(lEar))**2);
-  const noseToREar = Math.sqrt((px(nose)-px(rEar))**2 + (py(nose)-py(rEar))**2);
-  const earRatio = (noseToLEar > 0 && noseToREar > 0)
-    ? (noseToREar - noseToLEar) / (noseToREar + noseToLEar)
-    : 0;
-  // Map ratio to approximate rotation. Empirical: ratio ~0.3 ≈ 30°
-  const headRot = earRatio * 100; // rough approximation
-  results.headRot = headRot;
-  const absHeadRot = Math.abs(headRot);
-  results.headRotStatus = absHeadRot < 15 ? "good" : absHeadRot < 30 ? "warn" : "bad";
-
-  // --- 4. Left Shoulder Elevation ---
-  // Measure as percentage of torso height
-  const torsoH = ((py(lHip) + py(rHip)) / 2) - ((py(lShoulder) + py(rShoulder)) / 2);
-  const shoulderDy = py(rShoulder) - py(lShoulder); // positive = left shoulder higher (lower y)
-  const lShoulderElev = torsoH > 0 ? (shoulderDy / torsoH) * 100 : 0;
-  results.lShoulderElev = lShoulderElev;
-  results.lShoulderStatus = lShoulderElev < 3 ? "good" : lShoulderElev < 6 ? "warn" : "bad";
-
-  // --- 5. Shoulder Height Asymmetry (angle) ---
-  const shoulderDist = Math.abs(px(rShoulder) - px(lShoulder));
-  const shoulderAngle = shoulderDist > 0
-    ? rad2deg(Math.atan2(Math.abs(py(lShoulder) - py(rShoulder)), shoulderDist))
-    : 0;
-  results.shoulderSym = shoulderAngle;
-  results.shoulderSymStatus = shoulderAngle < 5 ? "good" : shoulderAngle < 10 ? "warn" : "bad";
-
-  // --- 6. Right Elbow (Bow Arm) - Abduction Angle ---
-  // Angle between torso vertical and upper arm (shoulder to elbow)
-  const rArmAngle = rad2deg(Math.abs(angle2D(
-    px(rShoulder), py(rShoulder), px(rElbow), py(rElbow)
-  ) - deg2rad(-90))); // deviation from straight down
-  const rElbowAbd = Math.min(rArmAngle, 180 - rArmAngle);
-  results.rElbowAbd = rElbowAbd;
-  results.rElbowStatus = rElbowAbd < 45 ? "good" : rElbowAbd < 60 ? "warn" : "bad";
-
-  // Is elbow above or below shoulder?
-  results.rElbowAboveShoulder = py(rElbow) < py(rShoulder);
-
-  // --- 7. Left Elbow Angle (Fingerboard Arm) ---
-  const lElbowAngle = angleBetween3(
-    px(lShoulder), py(lShoulder),
-    px(lElbow), py(lElbow),
-    px(lWrist), py(lWrist)
-  );
-  results.lElbowAngle = lElbowAngle;
-  results.lElbowStatus = (lElbowAngle >= 50 && lElbowAngle <= 80) ? "good"
-    : ((lElbowAngle >= 40 && lElbowAngle < 50) || (lElbowAngle > 80 && lElbowAngle <= 95)) ? "warn"
-    : "bad";
-
-  // --- 8. Left Wrist Straightness ---
-  // Deviation of wrist from the line forearm → hand
-  const wristAngle = angleBetween3(
-    px(lElbow), py(lElbow),
-    px(lWrist), py(lWrist),
-    px(lIndex), py(lIndex)
-  );
-  const wristDev = Math.abs(180 - wristAngle);
-  results.lWristDev = wristDev;
-  results.lWristStatus = wristDev < 10 ? "good" : wristDev < 20 ? "warn" : "bad";
-
-  // --- 9. Trunk Lateral Lean ---
-  const midHipX = (px(lHip) + px(rHip)) / 2;
-  const midHipY = (py(lHip) + py(rHip)) / 2;
-  const midShoulderX = (px(lShoulder) + px(rShoulder)) / 2;
-  const midShoulderY = (py(lShoulder) + py(rShoulder)) / 2;
-  const trunkAngle = rad2deg(Math.atan2(midShoulderX - midHipX, midHipY - midShoulderY));
-  results.trunkLean = trunkAngle;
-  const absTrunk = Math.abs(trunkAngle);
-  results.trunkStatus = absTrunk < 5 ? "good" : absTrunk < 10 ? "warn" : "bad";
-
-  // --- 10. Pelvic Level ---
-  const hipDist = Math.abs(px(rHip) - px(lHip));
-  const pelvicAngle = hipDist > 0
-    ? rad2deg(Math.atan2(Math.abs(py(lHip) - py(rHip)), hipDist))
-    : 0;
-  results.pelvicTilt = pelvicAngle;
-  results.pelvicStatus = pelvicAngle < 3 ? "good" : pelvicAngle < 5 ? "warn" : "bad";
-
-  // --- RULA Composite Score ---
-  const statusScores = { good: 0, warn: 1, bad: 2 };
-  const allStatuses = [
-    results.cvaStatus, results.headTiltStatus, results.headRotStatus,
-    results.lShoulderStatus, results.shoulderSymStatus,
-    results.rElbowStatus, results.lElbowStatus, results.lWristStatus,
-    results.trunkStatus, results.pelvicStatus
-  ];
-  const totalBad = allStatuses.reduce((s, v) => s + statusScores[v], 0);
-  // Map 0-20 → 1-7 RULA
-  const rulaRaw = 1 + (totalBad / 20) * 6;
-  results.rula = Math.round(Math.min(7, Math.max(1, rulaRaw)) * 10) / 10;
-
+  results.cva = rad2deg(Math.atan2(py(shoulder)-py(ear), Math.abs(px(ear)-px(shoulder))));
+  results.cvaStatus = results.cva>53?"good":results.cva>48?"warn":"bad";
+  const earDy=py(lEar)-py(rEar), earDx=px(rEar)-px(lEar);
+  results.headTilt = rad2deg(Math.atan2(earDy, earDx));
+  results.headTiltStatus = Math.abs(results.headTilt)<5?"good":Math.abs(results.headTilt)<10?"warn":"bad";
+  const noseToLEar=Math.sqrt((px(nose)-px(lEar))**2+(py(nose)-py(lEar))**2);
+  const noseToREar=Math.sqrt((px(nose)-px(rEar))**2+(py(nose)-py(rEar))**2);
+  const earRatio=(noseToLEar>0&&noseToREar>0)?(noseToREar-noseToLEar)/(noseToREar+noseToLEar):0;
+  results.headRot = earRatio*100;
+  results.headRotStatus = Math.abs(results.headRot)<15?"good":Math.abs(results.headRot)<30?"warn":"bad";
+  const torsoH=((py(lHip)+py(rHip))/2)-((py(lShoulder)+py(rShoulder))/2);
+  const shoulderDy=py(rShoulder)-py(lShoulder);
+  results.lShoulderElev = torsoH>0?(shoulderDy/torsoH)*100:0;
+  results.lShoulderStatus = results.lShoulderElev<3?"good":results.lShoulderElev<6?"warn":"bad";
+  const shoulderDist=Math.abs(px(rShoulder)-px(lShoulder));
+  results.shoulderSym = shoulderDist>0?rad2deg(Math.atan2(Math.abs(py(lShoulder)-py(rShoulder)),shoulderDist)):0;
+  results.shoulderSymStatus = results.shoulderSym<5?"good":results.shoulderSym<10?"warn":"bad";
+  const rArmAngle=rad2deg(Math.abs(angle2D(px(rShoulder),py(rShoulder),px(rElbow),py(rElbow))-deg2rad(-90)));
+  results.rElbowAbd = Math.min(rArmAngle, 180-rArmAngle);
+  results.rElbowStatus = results.rElbowAbd<45?"good":results.rElbowAbd<60?"warn":"bad";
+  results.rElbowAboveShoulder = py(rElbow)<py(rShoulder);
+  results.lElbowAngle = angleBetween3(px(lShoulder),py(lShoulder),px(lElbow),py(lElbow),px(lWrist),py(lWrist));
+  results.lElbowStatus = (results.lElbowAngle>=50&&results.lElbowAngle<=80)?"good":((results.lElbowAngle>=40&&results.lElbowAngle<50)||(results.lElbowAngle>80&&results.lElbowAngle<=95))?"warn":"bad";
+  const wristAngle=angleBetween3(px(lElbow),py(lElbow),px(lWrist),py(lWrist),px(lIndex),py(lIndex));
+  results.lWristDev = Math.abs(180-wristAngle);
+  results.lWristStatus = results.lWristDev<10?"good":results.lWristDev<20?"warn":"bad";
+  const midHipX=(px(lHip)+px(rHip))/2, midHipY=(py(lHip)+py(rHip))/2;
+  const midShoulderX=(px(lShoulder)+px(rShoulder))/2, midShoulderY=(py(lShoulder)+py(rShoulder))/2;
+  results.trunkLean = rad2deg(Math.atan2(midShoulderX-midHipX, midHipY-midShoulderY));
+  results.trunkStatus = Math.abs(results.trunkLean)<5?"good":Math.abs(results.trunkLean)<10?"warn":"bad";
+  const hipDist=Math.abs(px(rHip)-px(lHip));
+  results.pelvicTilt = hipDist>0?rad2deg(Math.atan2(Math.abs(py(lHip)-py(rHip)),hipDist)):0;
+  results.pelvicStatus = results.pelvicTilt<3?"good":results.pelvicTilt<5?"warn":"bad";
+  const statusScores={good:0,warn:1,bad:2};
+  const allStatuses=[results.cvaStatus,results.headTiltStatus,results.headRotStatus,results.lShoulderStatus,results.shoulderSymStatus,results.rElbowStatus,results.lElbowStatus,results.lWristStatus,results.trunkStatus,results.pelvicStatus];
+  const totalBad=allStatuses.reduce((s,v)=>s+statusScores[v],0);
+  results.rula = Math.round(Math.min(7,Math.max(1,1+(totalBad/20)*6))*10)/10;
   return results;
 }
 
-// =============================================================================
-// SMOOTH METRICS
-// =============================================================================
-function smoothMetrics(raw) {
-  if (!smoothedMetrics) {
-    smoothedMetrics = { ...raw };
-    return smoothedMetrics;
-  }
-  const numKeys = ["cva","headTilt","headRot","lShoulderElev","shoulderSym",
-    "rElbowAbd","lElbowAngle","lWristDev","trunkLean","pelvicTilt","rula"];
-  for (const k of numKeys) {
-    if (typeof raw[k] === "number") {
-      smoothedMetrics[k] = ema(smoothedMetrics[k], raw[k], ALPHA);
-    }
-  }
-  // Copy status strings directly from raw (based on smoothed thresholds recalc)
-  const statusKeys = ["cvaStatus","headTiltStatus","headRotStatus","lShoulderStatus",
-    "shoulderSymStatus","rElbowStatus","lElbowStatus","lWristStatus",
-    "trunkStatus","pelvicStatus","rElbowAboveShoulder"];
-  for (const k of statusKeys) {
-    smoothedMetrics[k] = raw[k];
-  }
+function smoothMetricsF(raw) {
+  if (!smoothedMetrics) { smoothedMetrics = { ...raw }; return smoothedMetrics; }
+  const numKeys=["cva","headTilt","headRot","lShoulderElev","shoulderSym","rElbowAbd","lElbowAngle","lWristDev","trunkLean","pelvicTilt","rula"];
+  for (const k of numKeys) { if (typeof raw[k]==="number") smoothedMetrics[k]=ema(smoothedMetrics[k],raw[k],ALPHA); }
+  const statusKeys=["cvaStatus","headTiltStatus","headRotStatus","lShoulderStatus","shoulderSymStatus","rElbowStatus","lElbowStatus","lWristStatus","trunkStatus","pelvicStatus","rElbowAboveShoulder"];
+  for (const k of statusKeys) smoothedMetrics[k]=raw[k];
   return smoothedMetrics;
+}
+
+// =============================================================================
+// NAVIGATION
+// =============================================================================
+function navigateTo(screenName) {
+  currentScreen = screenName;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const map = { select:'screenSelect', guide:'screenGuide', live:'screenLive', report:'screenReport' };
+  document.getElementById(map[screenName]).classList.add('active');
+  window.scrollTo(0, 0);
+  // Hide PiP when not on live screen
+  if (screenName !== 'live') {
+    document.getElementById('cameraPip').style.display = 'none';
+    pipActive = false;
+  }
+}
+
+// =============================================================================
+// S1: BUILD FOCUS GRID
+// =============================================================================
+function buildFocusGrid() {
+  const grid = document.getElementById('focusGrid');
+  grid.innerHTML = '';
+  for (const [key, area] of Object.entries(FOCUS_AREAS)) {
+    const card = document.createElement('div');
+    card.className = 'focus-card';
+    card.innerHTML = `<div class="focus-icon">${area.icon}</div><div class="focus-label">${area.label}</div><div class="focus-desc">${area.desc}</div>`;
+    card.addEventListener('click', () => {
+      selectedArea = key;
+      buildGuideContent();
+      navigateTo('guide');
+    });
+    grid.appendChild(card);
+  }
+}
+
+// =============================================================================
+// S2: CAMERA GUIDE
+// =============================================================================
+function generateGuideSVG(area) {
+  const guide = area.cameraGuide;
+  const isSide = guide.svgAngle === 'side';
+  // Simple stick figure with camera position indicator
+  return `<svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" style="max-width:200px;">
+    <!-- Person -->
+    <circle cx="100" cy="30" r="14" fill="none" stroke="#448aff" stroke-width="2"/>
+    <line x1="100" y1="44" x2="100" y2="90" stroke="#448aff" stroke-width="2"/>
+    <line x1="100" y1="55" x2="${isSide?'80':'70'}" y2="75" stroke="#448aff" stroke-width="2"/>
+    <line x1="100" y1="55" x2="${isSide?'85':'130'}" y2="75" stroke="#448aff" stroke-width="2"/>
+    <line x1="100" y1="90" x2="85" y2="120" stroke="#448aff" stroke-width="2"/>
+    <line x1="100" y1="90" x2="115" y2="120" stroke="#448aff" stroke-width="2"/>
+    ${isSide ? `
+    <!-- Camera from side -->
+    <rect x="20" y="45" width="24" height="18" rx="3" fill="none" stroke="#00e676" stroke-width="2"/>
+    <circle cx="32" cy="54" r="5" fill="none" stroke="#00e676" stroke-width="1.5"/>
+    <line x1="44" y1="54" x2="80" y2="50" stroke="#00e676" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="15" y="78" fill="#8888a0" font-size="9">📷</text>
+    ` : `
+    <!-- Camera from front -->
+    <rect x="88" y="138" width="24" height="18" rx="3" fill="none" stroke="#00e676" stroke-width="2"/>
+    <circle cx="100" cy="147" r="5" fill="none" stroke="#00e676" stroke-width="1.5"/>
+    <line x1="100" y1="138" x2="100" y2="125" stroke="#00e676" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="110" y="152" fill="#8888a0" font-size="9">📷</text>
+    `}
+    <!-- Highlight area -->
+    ${area.skeletonHighlight.includes(0) ? '<circle cx="100" cy="30" r="20" fill="rgba(68,138,255,0.1)" stroke="rgba(68,138,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>' : ''}
+    ${area.skeletonHighlight.includes(14) && !area.skeletonHighlight.includes(13) ? '<ellipse cx="130" cy="65" rx="25" ry="20" fill="rgba(68,138,255,0.1)" stroke="rgba(68,138,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>' : ''}
+    ${area.skeletonHighlight.includes(13) && !area.skeletonHighlight.includes(14) ? '<ellipse cx="75" cy="65" rx="25" ry="20" fill="rgba(68,138,255,0.1)" stroke="rgba(68,138,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>' : ''}
+    ${area.skeletonHighlight.includes(23) && area.skeletonHighlight.includes(24) && !area.skeletonHighlight.includes(0) ? '<ellipse cx="100" cy="95" rx="30" ry="30" fill="rgba(68,138,255,0.1)" stroke="rgba(68,138,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>' : ''}
+  </svg>`;
+}
+
+function buildGuideContent() {
+  const area = FOCUS_AREAS[selectedArea];
+  const guide = area.cameraGuide;
+  const content = document.getElementById('guideContent');
+  content.innerHTML = `
+    <div class="guide-angle-box">
+      ${generateGuideSVG(area)}
+      <div class="guide-angle-title">${guide.angle}</div>
+      <div class="guide-angle-sub">推奨距離: ${guide.distance}</div>
+      <div class="guide-angle-sub" style="margin-top:4px;">${guide.visibleParts}</div>
+    </div>
+    <div class="guide-tips">
+      <h3>${area.label}の撮影ポイント</h3>
+      <ul>${guide.tips.map(t => `<li>${t}</li>`).join('')}</ul>
+    </div>
+  `;
+}
+
+// =============================================================================
+// S3: BUILD METRIC CARDS
+// =============================================================================
+function buildMetricCards() {
+  const area = FOCUS_AREAS[selectedArea];
+  const container = document.getElementById('metricCards');
+  container.innerHTML = area.metrics.map(key => {
+    const def = METRIC_DEFS[key];
+    return `<div class="metric-card status-none" id="card-${def.id}">
+      <div class="metric-header">
+        <div class="metric-name">${def.name}</div>
+        <div class="metric-badge" id="badge-${def.id}">--</div>
+      </div>
+      <div class="metric-value" id="val-${def.id}">--${def.unit}</div>
+      <div class="metric-detail">${def.detail}</div>
+      <div class="metric-ref">${def.ref}</div>
+    </div>`;
+  }).join('');
 }
 
 // =============================================================================
 // UI UPDATE
 // =============================================================================
-const statusLabels = { good: "正常", warn: "注意", bad: "警告" };
-const badgeClasses = { good: "badge-good", warn: "badge-warn", bad: "badge-bad" };
-const cardClasses = { good: "status-good", warn: "status-warn", bad: "status-bad" };
+const statusLabels = { good:"正常", warn:"注意", bad:"警告" };
+const badgeClasses = { good:"badge-good", warn:"badge-warn", bad:"badge-bad" };
+const cardClasses = { good:"status-good", warn:"status-warn", bad:"status-bad" };
 
 function updateUI(m) {
-  function setCard(id, value, status, suffix = "") {
-    const card = document.getElementById(`card-${id}`);
-    const badge = document.getElementById(`badge-${id}`);
-    const val = document.getElementById(`val-${id}`);
-    card.className = `metric-card ${cardClasses[status] || "status-none"}`;
-    badge.className = `metric-badge ${badgeClasses[status] || ""}`;
-    badge.textContent = statusLabels[status] || "--";
-    val.textContent = value + suffix;
+  if (!selectedArea) return;
+  const area = FOCUS_AREAS[selectedArea];
+  for (const key of area.metrics) {
+    const def = METRIC_DEFS[key];
+    const val = def.getValue(m);
+    const status = def.getStatus(m);
+    const card = document.getElementById(`card-${def.id}`);
+    const badge = document.getElementById(`badge-${def.id}`);
+    const valEl = document.getElementById(`val-${def.id}`);
+    if (!card) continue;
+    card.className = `metric-card ${cardClasses[status]||"status-none"}`;
+    badge.className = `metric-badge ${badgeClasses[status]||""}`;
+    badge.textContent = statusLabels[status]||"--";
+    valEl.textContent = val.toFixed(1) + def.unit;
   }
-
-  setCard("cva", m.cva.toFixed(1), m.cvaStatus, "°");
-  const tiltDir = m.headTilt > 0 ? " (左傾)" : m.headTilt < -1 ? " (右傾)" : "";
-  setCard("headtilt", Math.abs(m.headTilt).toFixed(1), m.headTiltStatus, "°" + tiltDir);
-  const rotDir = m.headRot > 0 ? " (左回旋)" : m.headRot < -2 ? " (右回旋)" : "";
-  setCard("headrot", Math.abs(m.headRot).toFixed(1), m.headRotStatus, "°" + rotDir);
-  setCard("lshoulder", m.lShoulderElev.toFixed(1), m.lShoulderStatus, "%");
-  setCard("shouldersym", m.shoulderSym.toFixed(1), m.shoulderSymStatus, "°");
-  const elbowPos = m.rElbowAboveShoulder ? " (肩上)" : " (肩下)";
-  setCard("relbow", m.rElbowAbd.toFixed(1), m.rElbowStatus, "°" + elbowPos);
-  setCard("lelbow", m.lElbowAngle.toFixed(1), m.lElbowStatus, "°");
-  setCard("lwrist", m.lWristDev.toFixed(1), m.lWristStatus, "°");
-  const trunkDir = m.trunkLean > 0 ? " (右傾)" : m.trunkLean < -1 ? " (左傾)" : "";
-  setCard("trunk", Math.abs(m.trunkLean).toFixed(1), m.trunkStatus, "°" + trunkDir);
-  setCard("pelvic", m.pelvicTilt.toFixed(1), m.pelvicStatus, "°");
-
   // RULA bar
   const rula = m.rula;
   const rulaFill = document.getElementById("rulaFill");
   const rulaScore = document.getElementById("rulaScore");
   const rulaLevel = document.getElementById("rulaLevel");
-  const pct = ((rula - 1) / 6) * 100;
-  rulaFill.style.width = pct + "%";
+  const pct = ((rula-1)/6)*100;
+  rulaFill.style.width = pct+"%";
   rulaScore.textContent = rula.toFixed(1);
-
-  if (rula <= 2) {
-    rulaFill.style.background = "var(--green)";
-    rulaScore.style.color = "var(--green)";
-    rulaLevel.style.background = "rgba(0,230,118,0.15)";
-    rulaLevel.style.color = "var(--green)";
-    rulaLevel.textContent = "良好";
-  } else if (rula <= 4) {
-    rulaFill.style.background = "var(--yellow)";
-    rulaScore.style.color = "var(--yellow)";
-    rulaLevel.style.background = "rgba(255,215,64,0.15)";
-    rulaLevel.style.color = "var(--yellow)";
-    rulaLevel.textContent = "要観察";
-  } else if (rula <= 6) {
-    rulaFill.style.background = "#ff9100";
-    rulaScore.style.color = "#ff9100";
-    rulaLevel.style.background = "rgba(255,145,0,0.15)";
-    rulaLevel.style.color = "#ff9100";
-    rulaLevel.textContent = "要改善";
-  } else {
-    rulaFill.style.background = "var(--red)";
-    rulaScore.style.color = "var(--red)";
-    rulaLevel.style.background = "rgba(255,82,82,0.15)";
-    rulaLevel.style.color = "var(--red)";
-    rulaLevel.textContent = "危険";
-  }
+  if (rula<=2) { rulaFill.style.background="var(--green)"; rulaScore.style.color="var(--green)"; rulaLevel.style.background="rgba(0,230,118,0.15)"; rulaLevel.style.color="var(--green)"; rulaLevel.textContent="良好"; }
+  else if (rula<=4) { rulaFill.style.background="var(--yellow)"; rulaScore.style.color="var(--yellow)"; rulaLevel.style.background="rgba(255,215,64,0.15)"; rulaLevel.style.color="var(--yellow)"; rulaLevel.textContent="要観察"; }
+  else if (rula<=6) { rulaFill.style.background="#ff9100"; rulaScore.style.color="#ff9100"; rulaLevel.style.background="rgba(255,145,0,0.15)"; rulaLevel.style.color="#ff9100"; rulaLevel.textContent="要改善"; }
+  else { rulaFill.style.background="var(--red)"; rulaScore.style.color="var(--red)"; rulaLevel.style.background="rgba(255,82,82,0.15)"; rulaLevel.style.color="var(--red)"; rulaLevel.textContent="危険"; }
 }
 
 // =============================================================================
-// SKELETON DRAWING — Color-coded by status
+// SKELETON DRAWING
 // =============================================================================
 function drawSkeleton(landmarks, metrics) {
   ctx.save();
   ctx.clearRect(0, 0, overlay.width, overlay.height);
-
   if (!landmarks || landmarks.length === 0) { ctx.restore(); return; }
-
-  const lm = landmarks;
-  const w = overlay.width;
-  const h = overlay.height;
-
-  // Custom connections with color coding
+  const lm = landmarks, w = overlay.width, h = overlay.height;
   const connections = PoseLandmarker.POSE_CONNECTIONS;
+  const highlight = selectedArea ? new Set(FOCUS_AREAS[selectedArea].skeletonHighlight) : null;
 
-  // Color mapping for body regions
   function getRegionColor(startIdx, endIdx) {
-    // Head/neck region
-    if ([0,1,2,3,4,5,6,7,8,9,10].includes(startIdx) && [0,1,2,3,4,5,6,7,8,9,10].includes(endIdx)) {
-      const headOk = metrics.cvaStatus === "good" && metrics.headTiltStatus === "good";
-      return headOk ? "rgba(0,230,118,0.8)" : metrics.cvaStatus === "bad" || metrics.headTiltStatus === "bad" ? "rgba(255,82,82,0.8)" : "rgba(255,215,64,0.8)";
+    if ([0,1,2,3,4,5,6,7,8,9,10].includes(startIdx)&&[0,1,2,3,4,5,6,7,8,9,10].includes(endIdx)){
+      const ok=metrics.cvaStatus==="good"&&metrics.headTiltStatus==="good";
+      return ok?"rgba(0,230,118,0.8)":metrics.cvaStatus==="bad"||metrics.headTiltStatus==="bad"?"rgba(255,82,82,0.8)":"rgba(255,215,64,0.8)";
     }
-    // Left arm (violin side: 11,13,15,17,19,21)
-    if ([11,13,15,17,19,21].includes(startIdx) && [11,13,15,17,19,21].includes(endIdx)) {
-      const leftOk = metrics.lElbowStatus === "good" && metrics.lWristStatus === "good";
-      return leftOk ? "rgba(0,230,118,0.8)" : (metrics.lElbowStatus === "bad" || metrics.lWristStatus === "bad") ? "rgba(255,82,82,0.8)" : "rgba(255,215,64,0.8)";
+    if ([11,13,15,17,19,21].includes(startIdx)&&[11,13,15,17,19,21].includes(endIdx)){
+      const ok=metrics.lElbowStatus==="good"&&metrics.lWristStatus==="good";
+      return ok?"rgba(0,230,118,0.8)":(metrics.lElbowStatus==="bad"||metrics.lWristStatus==="bad")?"rgba(255,82,82,0.8)":"rgba(255,215,64,0.8)";
     }
-    // Right arm (bow side: 12,14,16,18,20,22)
-    if ([12,14,16,18,20,22].includes(startIdx) && [12,14,16,18,20,22].includes(endIdx)) {
-      return metrics.rElbowStatus === "good" ? "rgba(0,230,118,0.8)" : metrics.rElbowStatus === "bad" ? "rgba(255,82,82,0.8)" : "rgba(255,215,64,0.8)";
+    if ([12,14,16,18,20,22].includes(startIdx)&&[12,14,16,18,20,22].includes(endIdx)){
+      return metrics.rElbowStatus==="good"?"rgba(0,230,118,0.8)":metrics.rElbowStatus==="bad"?"rgba(255,82,82,0.8)":"rgba(255,215,64,0.8)";
     }
-    // Trunk (11-12 shoulder line, 23-24 hip line, 11-23, 12-24)
-    if (([11,12].includes(startIdx) && [11,12].includes(endIdx)) ||
-        ([23,24].includes(startIdx) && [23,24].includes(endIdx)) ||
-        (startIdx === 11 && endIdx === 23) || (startIdx === 12 && endIdx === 24)) {
-      const trunkOk = metrics.trunkStatus === "good" && metrics.shoulderSymStatus === "good";
-      return trunkOk ? "rgba(0,230,118,0.8)" : (metrics.trunkStatus === "bad" || metrics.shoulderSymStatus === "bad") ? "rgba(255,82,82,0.8)" : "rgba(255,215,64,0.8)";
+    if (([11,12].includes(startIdx)&&[11,12].includes(endIdx))||([23,24].includes(startIdx)&&[23,24].includes(endIdx))||(startIdx===11&&endIdx===23)||(startIdx===12&&endIdx===24)){
+      const ok=metrics.trunkStatus==="good"&&metrics.shoulderSymStatus==="good";
+      return ok?"rgba(0,230,118,0.8)":(metrics.trunkStatus==="bad"||metrics.shoulderSymStatus==="bad")?"rgba(255,82,82,0.8)":"rgba(255,215,64,0.8)";
     }
     return "rgba(100,200,255,0.6)";
   }
 
-  // Draw connections
   for (const conn of connections) {
-    const s = conn.start;
-    const e = conn.end;
-    const sl = lm[s];
-    const el = lm[e];
-    if ((sl.visibility || 0) < 0.3 || (el.visibility || 0) < 0.3) continue;
+    const s=conn.start, e=conn.end;
+    const sl=lm[s], el=lm[e];
+    if ((sl.visibility||0)<0.3||(el.visibility||0)<0.3) continue;
+    const isHighlighted = !highlight || (highlight.has(s) && highlight.has(e));
     const color = getRegionColor(s, e);
     ctx.beginPath();
-    ctx.moveTo(sl.x * w, sl.y * h);
-    ctx.lineTo(el.x * w, el.y * h);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+    ctx.moveTo(sl.x*w, sl.y*h);
+    ctx.lineTo(el.x*w, el.y*h);
+    ctx.globalAlpha = isHighlighted ? 1.0 : 0.2;
+    ctx.strokeStyle = isHighlighted ? color : "rgba(100,200,255,0.4)";
+    ctx.lineWidth = isHighlighted ? 3 : 1.5;
     ctx.stroke();
   }
+  ctx.globalAlpha = 1.0;
 
-  // Draw landmarks
   for (let i = 0; i < lm.length; i++) {
-    if ((lm[i].visibility || 0) < 0.3) continue;
+    if ((lm[i].visibility||0)<0.3) continue;
+    const isH = !highlight || highlight.has(i);
     ctx.beginPath();
-    ctx.arc(lm[i].x * w, lm[i].y * h, 4, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.arc(lm[i].x*w, lm[i].y*h, isH?4:2, 0, Math.PI*2);
+    ctx.fillStyle = isH?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.25)";
     ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.5)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    if (isH) { ctx.strokeStyle="rgba(0,0,0,0.5)"; ctx.lineWidth=1; ctx.stroke(); }
   }
 
-  // Draw angle annotations on key joints
-  drawAngleArc(lm, 11, 13, 15, metrics.lElbowAngle, w, h); // left elbow
-  drawCVALine(lm, metrics.cva, w, h);
-
+  // Angle annotations
+  if (!selectedArea || FOCUS_AREAS[selectedArea].metrics.includes('lElbowAngle')) {
+    drawAngleArc(lm, 11, 13, 15, metrics.lElbowAngle, w, h);
+  }
+  if (!selectedArea || FOCUS_AREAS[selectedArea].metrics.includes('cva')) {
+    drawCVALine(lm, metrics.cva, w, h);
+  }
   ctx.restore();
 }
 
 function drawAngleArc(lm, a, b, c, angle, w, h) {
-  if ((lm[b].visibility || 0) < 0.3) return;
-  const bx = lm[b].x * w, by = lm[b].y * h;
+  if ((lm[b].visibility||0)<0.3) return;
+  const bx=lm[b].x*w, by=lm[b].y*h;
   ctx.save();
-  ctx.font = "bold 11px monospace";
-  ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.strokeStyle = "rgba(0,0,0,0.6)";
-  ctx.lineWidth = 2;
-  const text = Math.round(angle) + "°";
-  ctx.strokeText(text, bx + 8, by - 8);
-  ctx.fillText(text, bx + 8, by - 8);
+  ctx.font="bold 11px monospace";
+  ctx.fillStyle="rgba(255,255,255,0.9)";
+  ctx.strokeStyle="rgba(0,0,0,0.6)";
+  ctx.lineWidth=2;
+  const text=Math.round(angle)+"°";
+  ctx.strokeText(text, bx+8, by-8);
+  ctx.fillText(text, bx+8, by-8);
   ctx.restore();
 }
 
 function drawCVALine(lm, cva, w, h) {
-  const ear = (lm[7].visibility || 0) >= (lm[8].visibility || 0) ? lm[7] : lm[8];
-  const shoulder = (lm[7].visibility || 0) >= (lm[8].visibility || 0) ? lm[11] : lm[12];
-  if ((ear.visibility || 0) < 0.3 || (shoulder.visibility || 0) < 0.3) return;
-  const ex = ear.x * w, ey = ear.y * h;
-  const sx = shoulder.x * w, sy = shoulder.y * h;
-
+  const ear=(lm[7].visibility||0)>=(lm[8].visibility||0)?lm[7]:lm[8];
+  const shoulder=(lm[7].visibility||0)>=(lm[8].visibility||0)?lm[11]:lm[12];
+  if ((ear.visibility||0)<0.3||(shoulder.visibility||0)<0.3) return;
+  const ex=ear.x*w,ey=ear.y*h,sx=shoulder.x*w,sy=shoulder.y*h;
   ctx.save();
-  ctx.setLineDash([4, 4]);
-  ctx.strokeStyle = "rgba(180,136,255,0.7)";
-  ctx.lineWidth = 1.5;
-  // Horizontal line from shoulder
-  ctx.beginPath();
-  ctx.moveTo(sx - 30, sy);
-  ctx.lineTo(sx + 30, sy);
-  ctx.stroke();
-  // Line ear to shoulder
-  ctx.beginPath();
-  ctx.moveTo(ex, ey);
-  ctx.lineTo(sx, sy);
-  ctx.stroke();
+  ctx.setLineDash([4,4]);
+  ctx.strokeStyle="rgba(180,136,255,0.7)";
+  ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(sx-30,sy); ctx.lineTo(sx+30,sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(sx,sy); ctx.stroke();
   ctx.setLineDash([]);
-
-  ctx.font = "bold 11px monospace";
-  ctx.fillStyle = "rgba(180,136,255,0.9)";
-  ctx.strokeStyle = "rgba(0,0,0,0.6)";
-  ctx.lineWidth = 2;
-  const label = "CVA " + Math.round(cva) + "°";
-  const mx = (ex + sx) / 2 + 6;
-  const my = (ey + sy) / 2;
-  ctx.strokeText(label, mx, my);
-  ctx.fillText(label, mx, my);
+  ctx.font="bold 11px monospace";
+  ctx.fillStyle="rgba(180,136,255,0.9)";
+  ctx.strokeStyle="rgba(0,0,0,0.6)";
+  ctx.lineWidth=2;
+  const label="CVA "+Math.round(cva)+"°";
+  const mx=(ex+sx)/2+6, my=(ey+sy)/2;
+  ctx.strokeText(label,mx,my);
+  ctx.fillText(label,mx,my);
   ctx.restore();
+}
+
+// =============================================================================
+// PiP CAMERA
+// =============================================================================
+function setupPiP() {
+  const cameraSection = document.getElementById('cameraSection');
+  const pip = document.getElementById('cameraPip');
+  const videoPip = document.getElementById('videoPip');
+  if (pipObserver) pipObserver.disconnect();
+  pipObserver = new IntersectionObserver((entries) => {
+    if (currentScreen !== 'live' || !running) return;
+    const entry = entries[0];
+    if (!entry.isIntersecting) {
+      videoPip.srcObject = video.srcObject;
+      videoPip.classList.toggle('mirror', video.classList.contains('mirror'));
+      pip.style.display = 'block';
+      pipActive = true;
+    } else {
+      pip.style.display = 'none';
+      pipActive = false;
+    }
+  }, { threshold: 0.3 });
+  pipObserver.observe(cameraSection);
+  pip.addEventListener('click', () => { cameraSection.scrollIntoView({ behavior:'smooth' }); });
 }
 
 // =============================================================================
@@ -999,206 +1220,292 @@ function drawCVALine(lm, cva, w, h) {
 function detectLoop() {
   if (!running) return;
   requestAnimationFrame(detectLoop);
-
   if (!poseLandmarker || video.readyState < 2) return;
   const t = video.currentTime;
   if (t === lastVideoTime) return;
   lastVideoTime = t;
-
   const ts = performance.now();
   const result = poseLandmarker.detectForVideo(video, ts);
-
-  // FPS calc
   frameCount++;
-  if (ts - fpsTime >= 1000) {
-    currentFps = frameCount;
-    frameCount = 0;
-    fpsTime = ts;
-    fpsBadge.textContent = currentFps + " FPS";
-  }
-
+  if (ts - fpsTime >= 1000) { currentFps = frameCount; frameCount = 0; fpsTime = ts; fpsBadge.textContent = currentFps + " FPS"; }
   if (result.landmarks && result.landmarks.length > 0) {
     const rawMetrics = analyzePosture(result.landmarks[0]);
-    const sm = smoothMetrics(rawMetrics);
-    // Re-evaluate statuses based on smoothed values
-    sm.cvaStatus = sm.cva > 53 ? "good" : sm.cva > 48 ? "warn" : "bad";
-    sm.headTiltStatus = Math.abs(sm.headTilt) < 5 ? "good" : Math.abs(sm.headTilt) < 10 ? "warn" : "bad";
-    sm.headRotStatus = Math.abs(sm.headRot) < 15 ? "good" : Math.abs(sm.headRot) < 30 ? "warn" : "bad";
-    sm.lShoulderStatus = sm.lShoulderElev < 3 ? "good" : sm.lShoulderElev < 6 ? "warn" : "bad";
-    sm.shoulderSymStatus = sm.shoulderSym < 5 ? "good" : sm.shoulderSym < 10 ? "warn" : "bad";
-    sm.rElbowStatus = sm.rElbowAbd < 45 ? "good" : sm.rElbowAbd < 60 ? "warn" : "bad";
-    sm.lElbowStatus = (sm.lElbowAngle >= 50 && sm.lElbowAngle <= 80) ? "good"
-      : ((sm.lElbowAngle >= 40 && sm.lElbowAngle < 50) || (sm.lElbowAngle > 80 && sm.lElbowAngle <= 95)) ? "warn" : "bad";
-    sm.lWristStatus = Math.abs(sm.lWristDev) < 10 ? "good" : Math.abs(sm.lWristDev) < 20 ? "warn" : "bad";
-    sm.trunkStatus = Math.abs(sm.trunkLean) < 5 ? "good" : Math.abs(sm.trunkLean) < 10 ? "warn" : "bad";
-    sm.pelvicStatus = sm.pelvicTilt < 3 ? "good" : sm.pelvicTilt < 5 ? "warn" : "bad";
-
+    const sm = smoothMetricsF(rawMetrics);
+    sm.cvaStatus = sm.cva>53?"good":sm.cva>48?"warn":"bad";
+    sm.headTiltStatus = Math.abs(sm.headTilt)<5?"good":Math.abs(sm.headTilt)<10?"warn":"bad";
+    sm.headRotStatus = Math.abs(sm.headRot)<15?"good":Math.abs(sm.headRot)<30?"warn":"bad";
+    sm.lShoulderStatus = sm.lShoulderElev<3?"good":sm.lShoulderElev<6?"warn":"bad";
+    sm.shoulderSymStatus = sm.shoulderSym<5?"good":sm.shoulderSym<10?"warn":"bad";
+    sm.rElbowStatus = sm.rElbowAbd<45?"good":sm.rElbowAbd<60?"warn":"bad";
+    sm.lElbowStatus = (sm.lElbowAngle>=50&&sm.lElbowAngle<=80)?"good":((sm.lElbowAngle>=40&&sm.lElbowAngle<50)||(sm.lElbowAngle>80&&sm.lElbowAngle<=95))?"warn":"bad";
+    sm.lWristStatus = Math.abs(sm.lWristDev)<10?"good":Math.abs(sm.lWristDev)<20?"warn":"bad";
+    sm.trunkStatus = Math.abs(sm.trunkLean)<5?"good":Math.abs(sm.trunkLean)<10?"warn":"bad";
+    sm.pelvicStatus = sm.pelvicTilt<3?"good":sm.pelvicTilt<5?"warn":"bad";
     drawSkeleton(result.landmarks[0], sm);
     updateUI(sm);
-
-    // Recording
-    if (isRecording) {
-      recordFrames.push({ time: ts, metrics: { ...sm } });
-    }
+    if (isRecording) { recordFrames.push({ time: ts, metrics: { ...sm } }); }
+    if (isMeasuring) { measurementData.push({ time: performance.now() - measureStartTime, metrics: { ...sm } }); }
   } else {
     ctx.clearRect(0, 0, overlay.width, overlay.height);
   }
 }
 
 // =============================================================================
-// SNAPSHOT & RECORDING
+// 30-SECOND MEASUREMENT
+// =============================================================================
+function startMeasurement30() {
+  measurementData = [];
+  isMeasuring = false;
+  const mOverlay = document.getElementById('measureOverlay');
+  const countdown = document.getElementById('measureCountdown');
+  const timer = document.getElementById('measureTimer');
+  const progress = document.getElementById('measureProgress');
+  mOverlay.style.display = 'flex';
+  timer.style.display = 'none';
+  countdown.style.display = 'block';
+  let count = 3;
+  countdown.textContent = count;
+  const countInterval = setInterval(() => {
+    count--;
+    if (count > 0) { countdown.textContent = count; }
+    else {
+      clearInterval(countInterval);
+      countdown.style.display = 'none';
+      timer.style.display = 'block';
+      isMeasuring = true;
+      measureStartTime = performance.now();
+      const measureInterval = setInterval(() => {
+        const elapsed = (performance.now() - measureStartTime) / 1000;
+        timer.textContent = Math.floor(elapsed) + '秒 / 30秒';
+        progress.style.width = (elapsed / 30 * 100) + '%';
+        if (elapsed >= 30) {
+          clearInterval(measureInterval);
+          isMeasuring = false;
+          mOverlay.style.display = 'none';
+          countdown.style.display = 'block';
+          countdown.textContent = '';
+          timer.style.display = 'none';
+          progress.style.width = '0%';
+          generateReport();
+        }
+      }, 100);
+    }
+  }, 1000);
+}
+
+// =============================================================================
+// REPORT GENERATION
+// =============================================================================
+function generateReport() {
+  if (measurementData.length === 0) return;
+  const area = FOCUS_AREAS[selectedArea];
+  const metricKeys = area.metrics;
+  const stats = {};
+  for (const key of metricKeys) {
+    const def = METRIC_DEFS[key];
+    const values = measurementData.map(f => def.getValue(f.metrics));
+    const mean = values.reduce((a,b)=>a+b,0)/values.length;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const sd = Math.sqrt(values.reduce((s,v)=>s+(v-mean)**2,0)/values.length);
+    const cv = mean!==0?(sd/Math.abs(mean))*100:0;
+    const stability = Math.max(0, 100 - cv * 2);
+    let worstIdx = key==='cva' ? values.indexOf(min) : values.indexOf(max);
+    const worstTime = measurementData[worstIdx]?.time/1000||0;
+    const worstValue = values[worstIdx];
+    const midMetrics = measurementData[Math.floor(measurementData.length/2)].metrics;
+    const status = def.getStatus(midMetrics);
+    stats[key] = { values, mean, min, max, sd, cv, stability, worstTime, worstValue, status };
+  }
+  const overallStability = metricKeys.reduce((s,k)=>s+stats[k].stability,0)/metricKeys.length;
+  const da = area.deepAnalysis;
+  let html = '';
+  const scoreColor = overallStability>=80?'var(--green)':overallStability>=50?'var(--yellow)':'var(--red)';
+  const scoreLabel = overallStability>=80?'安定':overallStability>=50?'やや不安定':'不安定';
+  const scoreBg = overallStability>=80?'rgba(0,230,118,0.15)':overallStability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+  html += `<div class="report-score-card">
+    <div class="report-score-value" style="color:${scoreColor}">${Math.round(overallStability)}</div>
+    <div class="report-score-label">総合安定性スコア（${area.label}）</div>
+    <div class="report-score-sub" style="background:${scoreBg};color:${scoreColor}">${scoreLabel} — ${measurementData.length}フレーム / 30秒間</div>
+  </div>`;
+  html += `<div class="report-metric" style="border-left:3px solid var(--blue);"><div style="font-size:13px;line-height:1.6;color:var(--text-dim);">${da.overview}</div></div>`;
+  // Worst metric
+  let worstKey = metricKeys[0], worstStab = stats[metricKeys[0]].stability;
+  for (const k of metricKeys) { if (stats[k].stability < worstStab) { worstStab = stats[k].stability; worstKey = k; } }
+  const ws = stats[worstKey];
+  html += `<div class="report-worst"><h3>最も不安定なポイント</h3><p>${METRIC_DEFS[worstKey].name}が${ws.worstTime.toFixed(1)}秒時点で${ws.worstValue.toFixed(1)}${METRIC_DEFS[worstKey].unit}に到達。変動係数${ws.cv.toFixed(1)}%、安定性${ws.stability.toFixed(0)}%。</p></div>`;
+  for (const key of metricKeys) {
+    const def = METRIC_DEFS[key];
+    const s = stats[key];
+    const md = da.metrics[key];
+    const sc = s.status==='good'?'var(--green)':s.status==='warn'?'var(--yellow)':'var(--red)';
+    const sl = s.status==='good'?'正常':s.status==='warn'?'注意':'警告';
+    const sb = s.status==='good'?'rgba(0,230,118,0.15)':s.status==='warn'?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+    const advice = s.status==='good'?md.goodAdvice:s.status==='warn'?md.warnAdvice:md.badAdvice;
+    html += `<div class="report-metric" style="border-left:3px solid ${sc};">
+      <div class="report-metric-header">
+        <div class="report-metric-name">${md.name}</div>
+        <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">${sl}</div>
+      </div>
+      <div class="report-metric-stats">
+        <div class="report-stat"><div class="report-stat-val" style="color:${sc}">${s.mean.toFixed(1)}${def.unit}</div><div class="report-stat-label">平均値</div></div>
+        <div class="report-stat"><div class="report-stat-val">${s.min.toFixed(1)}〜${s.max.toFixed(1)}</div><div class="report-stat-label">範囲</div></div>
+        <div class="report-stat"><div class="report-stat-val">${s.stability.toFixed(0)}%</div><div class="report-stat-label">安定性</div></div>
+      </div>
+      <canvas class="report-chart" id="chart-${key}" width="400" height="60"></canvas>
+      <div class="report-advice"><strong>評価:</strong> ${advice}</div>
+      <div style="margin-top:8px;"><strong style="font-size:11px;color:var(--text);">改善のヒント:</strong><ul style="margin:4px 0 0 16px;">${md.tips.map(t=>`<li style="font-size:11px;color:var(--text-dim);line-height:1.6;">${t}</li>`).join('')}</ul></div>
+      <div class="report-ref">${md.ref}</div>
+    </div>`;
+  }
+  html += `<div class="report-actions">
+    <button class="btn btn-primary" id="btnRetryMeasure" style="flex:1;">もう一度測定</button>
+    <button class="btn" id="btnReportBack" style="flex:1;">別の部位を分析</button>
+  </div>`;
+  document.getElementById('reportContent').innerHTML = html;
+  navigateTo('report');
+  setTimeout(() => { for (const key of metricKeys) drawMiniChart(key, stats[key]); }, 50);
+  document.getElementById('btnRetryMeasure')?.addEventListener('click', () => { navigateTo('live'); });
+  document.getElementById('btnReportBack')?.addEventListener('click', () => {
+    if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    running = false; smoothedMetrics = null; navigateTo('select');
+  });
+}
+
+function drawMiniChart(key, stat) {
+  const canvas = document.getElementById('chart-'+key);
+  if (!canvas) return;
+  const c = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const values = stat.values;
+  if (values.length < 2) return;
+  const pad = 4;
+  const mn = stat.min-(stat.max-stat.min)*0.1;
+  const mx = stat.max+(stat.max-stat.min)*0.1;
+  const range = mx-mn||1;
+  const meanY = h-pad-((stat.mean-mn)/range)*(h-pad*2);
+  c.strokeStyle='rgba(255,255,255,0.15)';
+  c.setLineDash([4,4]);
+  c.beginPath(); c.moveTo(0,meanY); c.lineTo(w,meanY); c.stroke();
+  c.setLineDash([]);
+  const color = stat.status==='good'?'#00e676':stat.status==='warn'?'#ffd740':'#ff5252';
+  c.strokeStyle = color;
+  c.lineWidth = 1.5;
+  c.beginPath();
+  const step = Math.max(1, Math.floor(values.length/w));
+  for (let i=0; i<values.length; i+=step) {
+    const x=(i/(values.length-1))*w;
+    const y=h-pad-((values[i]-mn)/range)*(h-pad*2);
+    if (i===0) c.moveTo(x,y); else c.lineTo(x,y);
+  }
+  c.stroke();
+  c.lineTo(w,h); c.lineTo(0,h); c.closePath();
+  const fc = color.replace(')',',0.1)').replace('#','');
+  // Convert hex to rgba for fill
+  const r=parseInt(color.slice(1,3),16), g=parseInt(color.slice(3,5),16), b=parseInt(color.slice(5,7),16);
+  c.fillStyle = `rgba(${r},${g},${b},0.1)`;
+  c.fill();
+}
+
+// =============================================================================
+// SNAPSHOT & RECORDING (preserved from v2)
 // =============================================================================
 function captureSnapshot(metricsOverride) {
   const snapCanvas = document.createElement("canvas");
-  snapCanvas.width = video.videoWidth;
-  snapCanvas.height = video.videoHeight;
+  snapCanvas.width = video.videoWidth; snapCanvas.height = video.videoHeight;
   const sctx = snapCanvas.getContext("2d");
-
   sctx.save();
-  if (facingMode === "user") {
-    sctx.translate(snapCanvas.width, 0);
-    sctx.scale(-1, 1);
-  }
-  sctx.drawImage(video, 0, 0);
-  sctx.restore();
-
-  // Overlay skeleton
-  if (facingMode === "user") {
-    sctx.save();
-    sctx.translate(snapCanvas.width, 0);
-    sctx.scale(-1, 1);
-  }
-  sctx.drawImage(overlay, 0, 0);
+  if (facingMode === "user") { sctx.translate(snapCanvas.width,0); sctx.scale(-1,1); }
+  sctx.drawImage(video,0,0); sctx.restore();
+  if (facingMode === "user") { sctx.save(); sctx.translate(snapCanvas.width,0); sctx.scale(-1,1); }
+  sctx.drawImage(overlay,0,0);
   if (facingMode === "user") sctx.restore();
-
   const dataUrl = snapCanvas.toDataURL("image/jpeg", 0.85);
   const metrics = metricsOverride || (smoothedMetrics ? { ...smoothedMetrics } : null);
   const now = new Date();
-  const timeStr = now.getHours().toString().padStart(2,"0") + ":" +
-                  now.getMinutes().toString().padStart(2,"0") + ":" +
-                  now.getSeconds().toString().padStart(2,"0");
-
+  const timeStr = now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0")+":"+now.getSeconds().toString().padStart(2,"0");
   snapshots.unshift({ time: timeStr, image: dataUrl, metrics });
   renderHistory();
 }
 
 function startRecording() {
   if (isRecording) return;
-  isRecording = true;
-  recordStartTime = performance.now();
-  recordFrames = [];
-  recordingBadge.style.display = "block";
-  btnRecord.textContent = "録画中...";
-  btnRecord.classList.add("recording");
-
-  setTimeout(() => {
-    stopRecording();
-  }, 5000);
+  isRecording = true; recordStartTime = performance.now(); recordFrames = [];
+  recordingBadge.style.display = "block"; btnRecord.textContent = "録画中..."; btnRecord.classList.add("recording");
+  setTimeout(() => stopRecording(), 5000);
 }
 
 function stopRecording() {
   if (!isRecording) return;
-  isRecording = false;
-  recordingBadge.style.display = "none";
-  btnRecord.textContent = "録画 5秒";
-  btnRecord.classList.remove("recording");
-
+  isRecording = false; recordingBadge.style.display = "none"; btnRecord.textContent = "録画 5秒"; btnRecord.classList.remove("recording");
   if (recordFrames.length > 0) {
-    // Average metrics over recording
     const avg = {};
-    const keys = ["cva","headTilt","headRot","lShoulderElev","shoulderSym",
-      "rElbowAbd","lElbowAngle","lWristDev","trunkLean","pelvicTilt","rula"];
-    for (const k of keys) {
-      avg[k] = recordFrames.reduce((s, f) => s + (f.metrics[k] || 0), 0) / recordFrames.length;
-    }
-    // Evaluate statuses on averaged values
-    avg.cvaStatus = avg.cva > 53 ? "good" : avg.cva > 48 ? "warn" : "bad";
-    avg.headTiltStatus = Math.abs(avg.headTilt) < 5 ? "good" : Math.abs(avg.headTilt) < 10 ? "warn" : "bad";
-    avg.headRotStatus = Math.abs(avg.headRot) < 15 ? "good" : Math.abs(avg.headRot) < 30 ? "warn" : "bad";
-    avg.lShoulderStatus = avg.lShoulderElev < 3 ? "good" : avg.lShoulderElev < 6 ? "warn" : "bad";
-    avg.shoulderSymStatus = avg.shoulderSym < 5 ? "good" : avg.shoulderSym < 10 ? "warn" : "bad";
-    avg.rElbowStatus = avg.rElbowAbd < 45 ? "good" : avg.rElbowAbd < 60 ? "warn" : "bad";
-    avg.lElbowStatus = (avg.lElbowAngle >= 50 && avg.lElbowAngle <= 80) ? "good"
-      : ((avg.lElbowAngle >= 40 && avg.lElbowAngle < 50) || (avg.lElbowAngle > 80 && avg.lElbowAngle <= 95)) ? "warn" : "bad";
-    avg.lWristStatus = Math.abs(avg.lWristDev) < 10 ? "good" : Math.abs(avg.lWristDev) < 20 ? "warn" : "bad";
-    avg.trunkStatus = Math.abs(avg.trunkLean) < 5 ? "good" : Math.abs(avg.trunkLean) < 10 ? "warn" : "bad";
-    avg.pelvicStatus = avg.pelvicTilt < 3 ? "good" : avg.pelvicTilt < 5 ? "warn" : "bad";
-    avg.rElbowAboveShoulder = recordFrames[recordFrames.length - 1].metrics.rElbowAboveShoulder;
-
+    const keys=["cva","headTilt","headRot","lShoulderElev","shoulderSym","rElbowAbd","lElbowAngle","lWristDev","trunkLean","pelvicTilt","rula"];
+    for (const k of keys) avg[k]=recordFrames.reduce((s,f)=>s+(f.metrics[k]||0),0)/recordFrames.length;
+    avg.cvaStatus=avg.cva>53?"good":avg.cva>48?"warn":"bad";
+    avg.headTiltStatus=Math.abs(avg.headTilt)<5?"good":Math.abs(avg.headTilt)<10?"warn":"bad";
+    avg.headRotStatus=Math.abs(avg.headRot)<15?"good":Math.abs(avg.headRot)<30?"warn":"bad";
+    avg.lShoulderStatus=avg.lShoulderElev<3?"good":avg.lShoulderElev<6?"warn":"bad";
+    avg.shoulderSymStatus=avg.shoulderSym<5?"good":avg.shoulderSym<10?"warn":"bad";
+    avg.rElbowStatus=avg.rElbowAbd<45?"good":avg.rElbowAbd<60?"warn":"bad";
+    avg.lElbowStatus=(avg.lElbowAngle>=50&&avg.lElbowAngle<=80)?"good":((avg.lElbowAngle>=40&&avg.lElbowAngle<50)||(avg.lElbowAngle>80&&avg.lElbowAngle<=95))?"warn":"bad";
+    avg.lWristStatus=Math.abs(avg.lWristDev)<10?"good":Math.abs(avg.lWristDev)<20?"warn":"bad";
+    avg.trunkStatus=Math.abs(avg.trunkLean)<5?"good":Math.abs(avg.trunkLean)<10?"warn":"bad";
+    avg.pelvicStatus=avg.pelvicTilt<3?"good":avg.pelvicTilt<5?"warn":"bad";
+    avg.rElbowAboveShoulder=recordFrames[recordFrames.length-1].metrics.rElbowAboveShoulder;
     captureSnapshot(avg);
   }
 }
 
 function renderHistory() {
   const list = document.getElementById("historyList");
-  if (snapshots.length === 0) {
-    list.innerHTML = '<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:40px 0;">まだ記録がありません。</div>';
-    return;
-  }
-  const statusIcon = (s) => s === "good" ? "&#9679;" : s === "warn" ? "&#9679;" : "&#9679;";
-  const statusColor = (s) => s === "good" ? "var(--green)" : s === "warn" ? "var(--yellow)" : "var(--red)";
-
-  list.innerHTML = snapshots.map((snap, i) => {
-    const m = snap.metrics;
-    if (!m) return "";
-    const rulaColor = m.rula <= 2 ? "var(--green)" : m.rula <= 4 ? "var(--yellow)" : m.rula <= 6 ? "#ff9100" : "var(--red)";
-    return `
-      <div class="snapshot-card">
-        <img src="${snap.image}" class="snapshot-img" alt="snapshot">
-        <div class="snapshot-header">
-          <div class="snapshot-time">${snap.time}</div>
-          <div class="snapshot-rula" style="color:${rulaColor}">RULA ${m.rula.toFixed(1)}</div>
-        </div>
-        <div class="snapshot-body">
-          <div class="snapshot-metrics">
-            <div class="snapshot-metric"><span>CVA</span><span style="color:${statusColor(m.cvaStatus)}">${m.cva.toFixed(1)}°</span></div>
-            <div class="snapshot-metric"><span>頭部傾斜</span><span style="color:${statusColor(m.headTiltStatus)}">${Math.abs(m.headTilt).toFixed(1)}°</span></div>
-            <div class="snapshot-metric"><span>頭部回旋</span><span style="color:${statusColor(m.headRotStatus)}">${Math.abs(m.headRot).toFixed(1)}°</span></div>
-            <div class="snapshot-metric"><span>左肩挙上</span><span style="color:${statusColor(m.lShoulderStatus)}">${m.lShoulderElev.toFixed(1)}%</span></div>
-            <div class="snapshot-metric"><span>肩左右差</span><span style="color:${statusColor(m.shoulderSymStatus)}">${m.shoulderSym.toFixed(1)}°</span></div>
-            <div class="snapshot-metric"><span>弓腕外転</span><span style="color:${statusColor(m.rElbowStatus)}">${m.rElbowAbd.toFixed(1)}°</span></div>
-            <div class="snapshot-metric"><span>左肘角</span><span style="color:${statusColor(m.lElbowStatus)}">${m.lElbowAngle.toFixed(1)}°</span></div>
-            <div class="snapshot-metric"><span>左手首偏位</span><span style="color:${statusColor(m.lWristStatus)}">${m.lWristDev.toFixed(1)}°</span></div>
-            <div class="snapshot-metric"><span>体幹傾斜</span><span style="color:${statusColor(m.trunkStatus)}">${Math.abs(m.trunkLean).toFixed(1)}°</span></div>
-            <div class="snapshot-metric"><span>骨盤傾斜</span><span style="color:${statusColor(m.pelvicStatus)}">${m.pelvicTilt.toFixed(1)}°</span></div>
-          </div>
-        </div>
-      </div>
-    `;
+  if (snapshots.length===0) { list.innerHTML='<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:40px 0;">まだ記録がありません。</div>'; return; }
+  const statusColor=(s)=>s==="good"?"var(--green)":s==="warn"?"var(--yellow)":"var(--red)";
+  list.innerHTML = snapshots.map(snap => {
+    const m=snap.metrics; if (!m) return "";
+    const rc=m.rula<=2?"var(--green)":m.rula<=4?"var(--yellow)":m.rula<=6?"#ff9100":"var(--red)";
+    return `<div class="snapshot-card"><img src="${snap.image}" class="snapshot-img" alt="snapshot"><div class="snapshot-header"><div class="snapshot-time">${snap.time}</div><div class="snapshot-rula" style="color:${rc}">RULA ${m.rula.toFixed(1)}</div></div><div class="snapshot-body"><div class="snapshot-metrics">
+      <div class="snapshot-metric"><span>CVA</span><span style="color:${statusColor(m.cvaStatus)}">${m.cva.toFixed(1)}°</span></div>
+      <div class="snapshot-metric"><span>頭部傾斜</span><span style="color:${statusColor(m.headTiltStatus)}">${Math.abs(m.headTilt).toFixed(1)}°</span></div>
+      <div class="snapshot-metric"><span>頭部回旋</span><span style="color:${statusColor(m.headRotStatus)}">${Math.abs(m.headRot).toFixed(1)}°</span></div>
+      <div class="snapshot-metric"><span>左肩挙上</span><span style="color:${statusColor(m.lShoulderStatus)}">${m.lShoulderElev.toFixed(1)}%</span></div>
+      <div class="snapshot-metric"><span>肩左右差</span><span style="color:${statusColor(m.shoulderSymStatus)}">${m.shoulderSym.toFixed(1)}°</span></div>
+      <div class="snapshot-metric"><span>弓腕外転</span><span style="color:${statusColor(m.rElbowStatus)}">${m.rElbowAbd.toFixed(1)}°</span></div>
+      <div class="snapshot-metric"><span>左肘角</span><span style="color:${statusColor(m.lElbowStatus)}">${m.lElbowAngle.toFixed(1)}°</span></div>
+      <div class="snapshot-metric"><span>左手首偏位</span><span style="color:${statusColor(m.lWristStatus)}">${m.lWristDev.toFixed(1)}°</span></div>
+      <div class="snapshot-metric"><span>体幹傾斜</span><span style="color:${statusColor(m.trunkStatus)}">${Math.abs(m.trunkLean).toFixed(1)}°</span></div>
+      <div class="snapshot-metric"><span>骨盤傾斜</span><span style="color:${statusColor(m.pelvicStatus)}">${m.pelvicTilt.toFixed(1)}°</span></div>
+    </div></div></div>`;
   }).join("");
 }
 
 // =============================================================================
 // EVENT HANDLERS
 // =============================================================================
-btnCamera.addEventListener("click", () => {
+document.getElementById('btnStartAnalysis').addEventListener('click', () => {
   if (!poseLandmarker) { alert("モデルの読み込みを待ってください"); return; }
-  if (stream) {
-    // Toggle camera
-    facingMode = facingMode === "user" ? "environment" : "user";
-    cameraSelect.value = facingMode;
-    running = false;
-    smoothedMetrics = null;
-    startCamera();
-  } else {
-    startCamera();
-  }
+  buildMetricCards();
+  navigateTo('live');
+  startCamera();
+  setTimeout(setupPiP, 500);
+});
+
+document.getElementById('btnBackToSelect').addEventListener('click', () => navigateTo('select'));
+
+document.getElementById('btnBackFromLive').addEventListener('click', () => {
+  if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  running = false; smoothedMetrics = null;
+  navigateTo('select');
 });
 
 cameraSelect.addEventListener("change", (e) => {
-  facingMode = e.target.value;
-  running = false;
-  smoothedMetrics = null;
-  startCamera();
+  facingMode = e.target.value; running = false; smoothedMetrics = null; startCamera();
 });
 
-btnRecord.addEventListener("click", () => {
-  if (!isRecording) startRecording();
-});
+btnRecord.addEventListener("click", () => { if (!isRecording) startRecording(); });
+btnSnapshot.addEventListener("click", () => { captureSnapshot(null); });
 
-btnSnapshot.addEventListener("click", () => {
-  captureSnapshot(null);
-});
+document.getElementById('btnMeasure30').addEventListener('click', () => { startMeasurement30(); });
 
 // Tab switching
 document.querySelectorAll(".tab").forEach(tab => {
@@ -1206,16 +1513,18 @@ document.querySelectorAll(".tab").forEach(tab => {
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
     const panel = tab.dataset.panel;
-    document.getElementById("metricsPanel").style.display = panel === "metrics" ? "block" : "none";
-    document.getElementById("historyPanel").style.display = panel === "history" ? "block" : "none";
-    document.getElementById("infoPanel").style.display = panel === "info" ? "block" : "none";
+    document.getElementById("metricsPanel").style.display = panel==="metrics"?"block":"none";
+    document.getElementById("historyPanel").style.display = panel==="history"?"block":"none";
+    document.getElementById("infoPanel").style.display = panel==="info"?"block":"none";
   });
 });
 
 // =============================================================================
 // BOOT
 // =============================================================================
+buildFocusGrid();
 init();
+
 </script>
 </body>
 </html>
