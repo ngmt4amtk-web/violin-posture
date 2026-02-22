@@ -65,6 +65,19 @@ header h1 span { color: var(--blue); }
 .screen.active { display: block; }
 
 /* S1: Focus Area Cards */
+.focus-fullscan {
+  background: linear-gradient(135deg, #1a1a3e, #0d2847);
+  border: 1.5px solid var(--blue); border-radius: 14px;
+  padding: 18px 16px; margin: 0 16px 8px; cursor: pointer;
+  display: flex; align-items: center; gap: 14px;
+  transition: all 0.2s;
+}
+.focus-fullscan:active { transform: scale(0.97); }
+.focus-fullscan .fs-icon { font-size: 36px; flex-shrink: 0; }
+.focus-fullscan .fs-text { flex: 1; }
+.focus-fullscan .fs-label { font-size: 15px; font-weight: 800; color: var(--blue); }
+.focus-fullscan .fs-desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; line-height: 1.4; }
+.focus-fullscan .fs-arrow { font-size: 20px; color: var(--blue); flex-shrink: 0; }
 .focus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
 .focus-card {
   background: var(--card); border: 1px solid var(--card-border);
@@ -76,6 +89,12 @@ header h1 span { color: var(--blue); }
 .focus-card .focus-label { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
 .focus-card .focus-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
 .focus-card:last-child { grid-column: 1 / -1; }
+.report-area-btn { background:var(--card); border:1px solid var(--card-border); border-radius:10px; padding:12px; margin-top:8px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:all 0.2s; }
+.report-area-btn:active { transform:scale(0.97); }
+.report-area-btn .rab-left { display:flex; align-items:center; gap:10px; }
+.report-area-btn .rab-icon { font-size:20px; }
+.report-area-btn .rab-name { font-size:13px; font-weight:700; }
+.report-area-btn .rab-score { font-size:12px; font-weight:600; }
 
 /* S2: Camera Guide */
 .guide-content { padding: 16px; }
@@ -421,9 +440,18 @@ header h1 span { color: var(--blue); }
 <!-- ===== S1: Focus Area Selection ===== -->
 <div class="screen active" id="screenSelect">
   <div style="padding:16px 16px 8px;">
-    <h2 style="font-size:16px;font-weight:700;">分析する部位を選択</h2>
-    <p style="font-size:12px;color:var(--text-dim);margin-top:4px;">気になる部位をタップして詳細分析を開始</p>
+    <h2 style="font-size:16px;font-weight:700;">姿勢分析</h2>
+    <p style="font-size:12px;color:var(--text-dim);margin-top:4px;">まず全身診断で問題を特定、または気になる部位を直接分析</p>
   </div>
+  <div class="focus-fullscan" id="btnFullScan">
+    <div class="fs-icon">🔍</div>
+    <div class="fs-text">
+      <div class="fs-label">全身クイック診断</div>
+      <div class="fs-desc">30秒で全10指標を測定し、特に注意が必要な部位をハイライト</div>
+    </div>
+    <div class="fs-arrow">›</div>
+  </div>
+  <div style="padding:4px 16px 0;"><div style="font-size:11px;color:var(--text-dim);text-align:center;margin-bottom:-4px;">— または部位を選んで詳細分析 —</div></div>
   <div class="focus-grid" id="focusGrid">
     <!-- Populated by JS -->
   </div>
@@ -1011,10 +1039,46 @@ function generateGuideSVG(area) {
   </svg>`;
 }
 
+function getActiveMetrics() {
+  if (selectedArea === 'all') return Object.keys(METRIC_DEFS);
+  return FOCUS_AREAS[selectedArea].metrics;
+}
+
 function buildGuideContent() {
+  const content = document.getElementById('guideContent');
+  if (selectedArea === 'all') {
+    content.innerHTML = `
+      <div class="guide-angle-box">
+        <svg viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg" style="max-width:200px;">
+          <circle cx="100" cy="30" r="14" fill="none" stroke="#448aff" stroke-width="2"/>
+          <line x1="100" y1="44" x2="100" y2="90" stroke="#448aff" stroke-width="2"/>
+          <line x1="100" y1="55" x2="70" y2="75" stroke="#448aff" stroke-width="2"/>
+          <line x1="100" y1="55" x2="130" y2="75" stroke="#448aff" stroke-width="2"/>
+          <line x1="100" y1="90" x2="85" y2="120" stroke="#448aff" stroke-width="2"/>
+          <line x1="100" y1="90" x2="115" y2="120" stroke="#448aff" stroke-width="2"/>
+          <rect x="88" y="138" width="24" height="18" rx="3" fill="none" stroke="#00e676" stroke-width="2"/>
+          <circle cx="100" cy="147" r="5" fill="none" stroke="#00e676" stroke-width="1.5"/>
+          <line x1="100" y1="138" x2="100" y2="125" stroke="#00e676" stroke-width="1" stroke-dasharray="4,3"/>
+          <ellipse cx="100" cy="70" rx="50" ry="55" fill="rgba(68,138,255,0.08)" stroke="rgba(68,138,255,0.25)" stroke-width="1" stroke-dasharray="3,2"/>
+        </svg>
+        <div class="guide-angle-title">正面</div>
+        <div class="guide-angle-sub">推奨距離: 2〜3m</div>
+        <div class="guide-angle-sub" style="margin-top:4px;">頭部〜膝まで全身が映る位置</div>
+      </div>
+      <div class="guide-tips">
+        <h3>全身診断の撮影ポイント</h3>
+        <ul>
+          <li>上半身全体が画面に収まるように</li>
+          <li>バイオリンを構えた演奏姿勢で撮影</li>
+          <li>明るい場所・シンプルな背景が理想的</li>
+          <li>30秒間、普段通りに演奏してください</li>
+        </ul>
+      </div>
+    `;
+    return;
+  }
   const area = FOCUS_AREAS[selectedArea];
   const guide = area.cameraGuide;
-  const content = document.getElementById('guideContent');
   content.innerHTML = `
     <div class="guide-angle-box">
       ${generateGuideSVG(area)}
@@ -1033,9 +1097,9 @@ function buildGuideContent() {
 // S3: BUILD METRIC CARDS
 // =============================================================================
 function buildMetricCards() {
-  const area = FOCUS_AREAS[selectedArea];
+  const metricKeys = getActiveMetrics();
   const container = document.getElementById('metricCards');
-  container.innerHTML = area.metrics.map(key => {
+  container.innerHTML = metricKeys.map(key => {
     const def = METRIC_DEFS[key];
     return `<div class="metric-card status-none" id="card-${def.id}">
       <div class="metric-header">
@@ -1058,8 +1122,8 @@ const cardClasses = { good:"status-good", warn:"status-warn", bad:"status-bad" }
 
 function updateUI(m) {
   if (!selectedArea) return;
-  const area = FOCUS_AREAS[selectedArea];
-  for (const key of area.metrics) {
+  const metricKeys = getActiveMetrics();
+  for (const key of metricKeys) {
     const def = METRIC_DEFS[key];
     const val = def.getValue(m);
     const status = def.getStatus(m);
@@ -1095,7 +1159,7 @@ function drawSkeleton(landmarks, metrics) {
   if (!landmarks || landmarks.length === 0) { ctx.restore(); return; }
   const lm = landmarks, w = overlay.width, h = overlay.height;
   const connections = PoseLandmarker.POSE_CONNECTIONS;
-  const highlight = selectedArea ? new Set(FOCUS_AREAS[selectedArea].skeletonHighlight) : null;
+  const highlight = (selectedArea && selectedArea !== 'all') ? new Set(FOCUS_AREAS[selectedArea].skeletonHighlight) : null;
 
   function getRegionColor(startIdx, endIdx) {
     if ([0,1,2,3,4,5,6,7,8,9,10].includes(startIdx)&&[0,1,2,3,4,5,6,7,8,9,10].includes(endIdx)){
@@ -1296,10 +1360,7 @@ function startMeasurement30() {
 // =============================================================================
 // REPORT GENERATION
 // =============================================================================
-function generateReport() {
-  if (measurementData.length === 0) return;
-  const area = FOCUS_AREAS[selectedArea];
-  const metricKeys = area.metrics;
+function calcStats(metricKeys) {
   const stats = {};
   for (const key of metricKeys) {
     const def = METRIC_DEFS[key];
@@ -1317,51 +1378,134 @@ function generateReport() {
     const status = def.getStatus(midMetrics);
     stats[key] = { values, mean, min, max, sd, cv, stability, worstTime, worstValue, status };
   }
+  return stats;
+}
+
+function generateReport() {
+  if (measurementData.length === 0) return;
+  const isAll = selectedArea === 'all';
+  const metricKeys = getActiveMetrics();
+  const stats = calcStats(metricKeys);
   const overallStability = metricKeys.reduce((s,k)=>s+stats[k].stability,0)/metricKeys.length;
-  const da = area.deepAnalysis;
   let html = '';
+
+  // Score card
   const scoreColor = overallStability>=80?'var(--green)':overallStability>=50?'var(--yellow)':'var(--red)';
   const scoreLabel = overallStability>=80?'安定':overallStability>=50?'やや不安定':'不安定';
   const scoreBg = overallStability>=80?'rgba(0,230,118,0.15)':overallStability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+  const areaLabel = isAll ? '全身' : FOCUS_AREAS[selectedArea].label;
   html += `<div class="report-score-card">
     <div class="report-score-value" style="color:${scoreColor}">${Math.round(overallStability)}</div>
-    <div class="report-score-label">総合安定性スコア（${area.label}）</div>
+    <div class="report-score-label">総合安定性スコア（${areaLabel}）</div>
     <div class="report-score-sub" style="background:${scoreBg};color:${scoreColor}">${scoreLabel} — ${measurementData.length}フレーム / 30秒間</div>
   </div>`;
-  html += `<div class="report-metric" style="border-left:3px solid var(--blue);"><div style="font-size:13px;line-height:1.6;color:var(--text-dim);">${da.overview}</div></div>`;
+
   // Worst metric
   let worstKey = metricKeys[0], worstStab = stats[metricKeys[0]].stability;
   for (const k of metricKeys) { if (stats[k].stability < worstStab) { worstStab = stats[k].stability; worstKey = k; } }
   const ws = stats[worstKey];
   html += `<div class="report-worst"><h3>最も不安定なポイント</h3><p>${METRIC_DEFS[worstKey].name}が${ws.worstTime.toFixed(1)}秒時点で${ws.worstValue.toFixed(1)}${METRIC_DEFS[worstKey].unit}に到達。変動係数${ws.cv.toFixed(1)}%、安定性${ws.stability.toFixed(0)}%。</p></div>`;
-  for (const key of metricKeys) {
-    const def = METRIC_DEFS[key];
-    const s = stats[key];
-    const md = da.metrics[key];
-    const sc = s.status==='good'?'var(--green)':s.status==='warn'?'var(--yellow)':'var(--red)';
-    const sl = s.status==='good'?'正常':s.status==='warn'?'注意':'警告';
-    const sb = s.status==='good'?'rgba(0,230,118,0.15)':s.status==='warn'?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
-    const advice = s.status==='good'?md.goodAdvice:s.status==='warn'?md.warnAdvice:md.badAdvice;
-    html += `<div class="report-metric" style="border-left:3px solid ${sc};">
-      <div class="report-metric-header">
-        <div class="report-metric-name">${md.name}</div>
-        <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">${sl}</div>
-      </div>
-      <div class="report-metric-stats">
-        <div class="report-stat"><div class="report-stat-val" style="color:${sc}">${s.mean.toFixed(1)}${def.unit}</div><div class="report-stat-label">平均値</div></div>
-        <div class="report-stat"><div class="report-stat-val">${s.min.toFixed(1)}〜${s.max.toFixed(1)}</div><div class="report-stat-label">範囲</div></div>
-        <div class="report-stat"><div class="report-stat-val">${s.stability.toFixed(0)}%</div><div class="report-stat-label">安定性</div></div>
-      </div>
-      <canvas class="report-chart" id="chart-${key}" width="400" height="60"></canvas>
-      <div class="report-advice"><strong>評価:</strong> ${advice}</div>
-      <div style="margin-top:8px;"><strong style="font-size:11px;color:var(--text);">改善のヒント:</strong><ul style="margin:4px 0 0 16px;">${md.tips.map(t=>`<li style="font-size:11px;color:var(--text-dim);line-height:1.6;">${t}</li>`).join('')}</ul></div>
-      <div class="report-ref">${md.ref}</div>
-    </div>`;
+
+  if (isAll) {
+    // === FULL BODY MODE: area-by-area summary ===
+    html += `<div style="font-size:13px;font-weight:700;margin:16px 0 8px;">部位別スコア</div>`;
+    // Calculate per-area scores and sort by worst first
+    const areaScores = [];
+    for (const [akey, area] of Object.entries(FOCUS_AREAS)) {
+      const areaMetrics = area.metrics;
+      const areaStab = areaMetrics.reduce((s,k)=>s+stats[k].stability,0)/areaMetrics.length;
+      const worstStatus = areaMetrics.some(k=>stats[k].status==='bad') ? 'bad' : areaMetrics.some(k=>stats[k].status==='warn') ? 'warn' : 'good';
+      areaScores.push({ key: akey, area, stability: areaStab, status: worstStatus });
+    }
+    areaScores.sort((a,b) => a.stability - b.stability);
+
+    for (const as of areaScores) {
+      const ac = as.status==='good'?'var(--green)':as.status==='warn'?'var(--yellow)':'var(--red)';
+      const al = as.status==='good'?'良好':as.status==='warn'?'注意':'要改善';
+      const ab = as.status==='good'?'rgba(0,230,118,0.15)':as.status==='warn'?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+      html += `<div class="report-metric" style="border-left:3px solid ${ac};">
+        <div class="report-metric-header">
+          <div class="report-metric-name">${as.area.icon} ${as.area.label}</div>
+          <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${ab};color:${ac};font-weight:700;">${al}</div>
+        </div>
+        <div class="report-metric-stats">
+          <div class="report-stat"><div class="report-stat-val" style="color:${ac}">${Math.round(as.stability)}%</div><div class="report-stat-label">安定性</div></div>
+          <div class="report-stat"><div class="report-stat-val">${as.area.metrics.length}</div><div class="report-stat-label">指標数</div></div>
+          <div class="report-stat"><div class="report-stat-val">${as.area.metrics.filter(k=>stats[k].status!=='good').length}</div><div class="report-stat-label">問題数</div></div>
+        </div>`;
+      // Show each metric in this area briefly
+      for (const mk of as.area.metrics) {
+        const ms = stats[mk]; const md = METRIC_DEFS[mk];
+        const mc = ms.status==='good'?'var(--green)':ms.status==='warn'?'var(--yellow)':'var(--red)';
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-top:1px solid var(--card-border);margin-top:4px;">
+          <span style="font-size:12px;">${md.name}</span>
+          <span style="font-size:13px;font-weight:700;font-family:monospace;color:${mc};">${ms.mean.toFixed(1)}${md.unit}</span>
+        </div>`;
+      }
+      // "詳しく分析" button
+      if (as.status !== 'good') {
+        html += `<div class="report-area-btn" data-area="${as.key}">
+          <div class="rab-left"><div class="rab-icon">${as.area.icon}</div><div class="rab-name">この部位を詳しく分析する</div></div>
+          <div style="color:var(--blue);font-size:16px;">›</div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // All 10 metrics detail with charts
+    html += `<div style="font-size:13px;font-weight:700;margin:16px 0 8px;">全指標の時系列データ</div>`;
+    for (const key of metricKeys) {
+      const def = METRIC_DEFS[key]; const s = stats[key];
+      const sc = s.status==='good'?'var(--green)':s.status==='warn'?'var(--yellow)':'var(--red)';
+      const sl = s.status==='good'?'正常':s.status==='warn'?'注意':'警告';
+      const sb = s.status==='good'?'rgba(0,230,118,0.15)':s.status==='warn'?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+      html += `<div class="report-metric" style="border-left:3px solid ${sc};">
+        <div class="report-metric-header">
+          <div class="report-metric-name">${def.name}</div>
+          <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">${sl}</div>
+        </div>
+        <div class="report-metric-stats">
+          <div class="report-stat"><div class="report-stat-val" style="color:${sc}">${s.mean.toFixed(1)}${def.unit}</div><div class="report-stat-label">平均値</div></div>
+          <div class="report-stat"><div class="report-stat-val">${s.min.toFixed(1)}〜${s.max.toFixed(1)}</div><div class="report-stat-label">範囲</div></div>
+          <div class="report-stat"><div class="report-stat-val">${s.stability.toFixed(0)}%</div><div class="report-stat-label">安定性</div></div>
+        </div>
+        <canvas class="report-chart" id="chart-${key}" width="400" height="60"></canvas>
+      </div>`;
+    }
+  } else {
+    // === SPECIFIC AREA MODE: detailed per-metric analysis ===
+    const da = FOCUS_AREAS[selectedArea].deepAnalysis;
+    html += `<div class="report-metric" style="border-left:3px solid var(--blue);"><div style="font-size:13px;line-height:1.6;color:var(--text-dim);">${da.overview}</div></div>`;
+    for (const key of metricKeys) {
+      const def = METRIC_DEFS[key]; const s = stats[key]; const md = da.metrics[key];
+      const sc = s.status==='good'?'var(--green)':s.status==='warn'?'var(--yellow)':'var(--red)';
+      const sl = s.status==='good'?'正常':s.status==='warn'?'注意':'警告';
+      const sb = s.status==='good'?'rgba(0,230,118,0.15)':s.status==='warn'?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+      const advice = s.status==='good'?md.goodAdvice:s.status==='warn'?md.warnAdvice:md.badAdvice;
+      html += `<div class="report-metric" style="border-left:3px solid ${sc};">
+        <div class="report-metric-header">
+          <div class="report-metric-name">${md.name}</div>
+          <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">${sl}</div>
+        </div>
+        <div class="report-metric-stats">
+          <div class="report-stat"><div class="report-stat-val" style="color:${sc}">${s.mean.toFixed(1)}${def.unit}</div><div class="report-stat-label">平均値</div></div>
+          <div class="report-stat"><div class="report-stat-val">${s.min.toFixed(1)}〜${s.max.toFixed(1)}</div><div class="report-stat-label">範囲</div></div>
+          <div class="report-stat"><div class="report-stat-val">${s.stability.toFixed(0)}%</div><div class="report-stat-label">安定性</div></div>
+        </div>
+        <canvas class="report-chart" id="chart-${key}" width="400" height="60"></canvas>
+        <div class="report-advice"><strong>評価:</strong> ${advice}</div>
+        <div style="margin-top:8px;"><strong style="font-size:11px;color:var(--text);">改善のヒント:</strong><ul style="margin:4px 0 0 16px;">${md.tips.map(t=>`<li style="font-size:11px;color:var(--text-dim);line-height:1.6;">${t}</li>`).join('')}</ul></div>
+        <div class="report-ref">${md.ref}</div>
+      </div>`;
+    }
   }
+
+  // Action buttons
   html += `<div class="report-actions">
     <button class="btn btn-primary" id="btnRetryMeasure" style="flex:1;">もう一度測定</button>
-    <button class="btn" id="btnReportBack" style="flex:1;">別の部位を分析</button>
+    <button class="btn" id="btnReportBack" style="flex:1;">${isAll ? 'トップに戻る' : '別の部位を分析'}</button>
   </div>`;
+
   document.getElementById('reportContent').innerHTML = html;
   navigateTo('report');
   setTimeout(() => { for (const key of metricKeys) drawMiniChart(key, stats[key]); }, 50);
@@ -1369,6 +1513,16 @@ function generateReport() {
   document.getElementById('btnReportBack')?.addEventListener('click', () => {
     if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
     running = false; smoothedMetrics = null; navigateTo('select');
+  });
+  // Wire up "この部位を詳しく分析" buttons
+  document.querySelectorAll('.report-area-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
+      running = false; smoothedMetrics = null;
+      selectedArea = btn.dataset.area;
+      buildGuideContent();
+      navigateTo('guide');
+    });
   });
 }
 
@@ -1482,12 +1636,24 @@ function renderHistory() {
 // =============================================================================
 // EVENT HANDLERS
 // =============================================================================
+document.getElementById('btnFullScan').addEventListener('click', () => {
+  selectedArea = 'all';
+  buildGuideContent();
+  navigateTo('guide');
+});
+
 document.getElementById('btnStartAnalysis').addEventListener('click', () => {
   if (!poseLandmarker) { alert("モデルの読み込みを待ってください"); return; }
   buildMetricCards();
   navigateTo('live');
   startCamera();
   setTimeout(setupPiP, 500);
+  // Auto-start 30s measurement in full scan mode
+  if (selectedArea === 'all') {
+    const waitForCamera = setInterval(() => {
+      if (running) { clearInterval(waitForCamera); setTimeout(startMeasurement30, 500); }
+    }, 200);
+  }
 });
 
 document.getElementById('btnBackToSelect').addEventListener('click', () => navigateTo('select'));
