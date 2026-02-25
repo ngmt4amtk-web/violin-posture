@@ -1245,7 +1245,7 @@ const METRIC_DEFS = {
   cva: { id:'cva', name:'頭頸角 (CVA)', easyName:'頭の位置', unit:'°', detail:'前方頭位の検出。耳-肩ラインと水平線の角度。', easyDetail:'頭が前に出すぎていないかチェック', ref:'基準: >53°正常 / 48-53°注意 / <48°警告', getValue:m=>m.cva, getStatus:m=>m.cvaStatus },
   headTilt: { id:'headtilt', name:'頭部側方傾斜', easyName:'頭の傾き', unit:'°', detail:'左右の耳の高低差から算出。', easyDetail:'頭が左右に傾いていないかチェック', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>Math.abs(m.headTilt), getStatus:m=>m.headTiltStatus, getDirection:m=>m.headTilt>0?'右':'左' },
   headRot: { id:'headrot', name:'頭部回旋推定', easyName:'顔の向き', unit:'°', detail:'鼻と両耳の位置関係から左回旋度を推定。', easyDetail:'顔がどれくらい回っているかチェック', ref:'基準: <15°正常 / 15-30°注意 / >30°警告', getValue:m=>Math.abs(m.headRot), getStatus:m=>m.headRotStatus, getDirection:m=>m.headRot>0?'左回旋':'右回旋' },
-  lShoulderElev: { id:'lshoulder', name:'左肩挙上', easyName:'左肩の高さ', unit:'%', detail:'左肩の上方偏位。バイオリニスト最大の悪習慣。', easyDetail:'左肩が上がりすぎていないかチェック', ref:'基準: <3%正常 / 3-6%注意 / >6%警告', getValue:m=>m.lShoulderElev, getStatus:m=>m.lShoulderStatus },
+  lShoulderElev: { id:'lshoulder', name:'左肩挙上', easyName:'左肩の高さ', unit:'%', detail:'左右肩高差の体幹長比。正=左肩が高い。', easyDetail:'左肩が上がりすぎていないかチェック', ref:'基準: |値|<3%正常 / 3-6%注意 / >6%警告', getValue:m=>Math.abs(m.lShoulderElev), getStatus:m=>m.lShoulderStatus, getDirection:m=>m.lShoulderElev>0?'左肩が高い':'左肩が低い' },
   shoulderSym: { id:'shouldersym', name:'肩高左右非対称', easyName:'肩の左右バランス', unit:'°', detail:'左右肩のY座標差を角度換算。', easyDetail:'両肩の高さが揃っているかチェック', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>m.shoulderSym, getStatus:m=>m.shoulderSymStatus },
   rElbowAbd: { id:'relbow', name:'右肘外転（弓腕）', easyName:'右肘（弓の手）', unit:'°', detail:'右上腕の外転角。45°以下推奨。', easyDetail:'弓を持つ手の肘の高さをチェック', ref:'基準: <45°正常 / 45-60°注意 / >60°警告', getValue:m=>m.rElbowAbd, getStatus:m=>m.rElbowStatus },
   lElbowAngle: { id:'lelbow', name:'左肘角度（指板腕）', easyName:'左肘（押さえる手）', unit:'°', detail:'肩-肘-手首の角度。', easyDetail:'押さえる手の肘の角度をチェック', ref:'基準: 20-70°正常 / 10-20°or70-90°注意', getValue:m=>m.lElbowAngle, getStatus:m=>m.lElbowStatus },
@@ -1469,7 +1469,7 @@ function analyzePosture(landmarks) {
   const torsoH=((py(lHip)+py(rHip))/2)-((py(lShoulder)+py(rShoulder))/2);
   const shoulderDy=py(rShoulder)-py(lShoulder);
   results.lShoulderElev = torsoH>0?(shoulderDy/torsoH)*100:0;
-  results.lShoulderStatus = results.lShoulderElev<3?"good":results.lShoulderElev<6?"warn":"bad";
+  results.lShoulderStatus = Math.abs(results.lShoulderElev)<3?"good":Math.abs(results.lShoulderElev)<6?"warn":"bad";
   const shoulderDist=Math.abs(px(rShoulder)-px(lShoulder));
   results.shoulderSym = shoulderDist>0?rad2deg(Math.atan2(Math.abs(py(lShoulder)-py(rShoulder)),shoulderDist)):0;
   results.shoulderSymStatus = results.shoulderSym<5?"good":results.shoulderSym<10?"warn":"bad";
@@ -1877,7 +1877,7 @@ function detectLoop() {
       sm.cvaStatus = sm.cva>53?"good":sm.cva>48?"warn":"bad";
       sm.headTiltStatus = Math.abs(sm.headTilt)<5?"good":Math.abs(sm.headTilt)<10?"warn":"bad";
       sm.headRotStatus = Math.abs(sm.headRot)<15?"good":Math.abs(sm.headRot)<30?"warn":"bad";
-      sm.lShoulderStatus = sm.lShoulderElev<3?"good":sm.lShoulderElev<6?"warn":"bad";
+      sm.lShoulderStatus = Math.abs(sm.lShoulderElev)<3?"good":Math.abs(sm.lShoulderElev)<6?"warn":"bad";
       sm.shoulderSymStatus = sm.shoulderSym<5?"good":sm.shoulderSym<10?"warn":"bad";
       sm.rElbowStatus = sm.rElbowAbd<45?"good":sm.rElbowAbd<60?"warn":"bad";
       sm.lElbowStatus = (sm.lElbowAngle>=20&&sm.lElbowAngle<=70)?"good":((sm.lElbowAngle>=10&&sm.lElbowAngle<20)||(sm.lElbowAngle>70&&sm.lElbowAngle<=90))?"warn":"bad";
@@ -2170,15 +2170,17 @@ function calcStats(metricKeys) {
 }
 
 function generateReport() {
-  // ソート + 重複排除（同一detectFrameから2回収集された場合への防御）
+  // ソート + 完全重複排除（同一タイムスタンプ1ms以内を重複とみなす）
   measurementData.sort((a, b) => a.time - b.time);
-  const deduped = [measurementData[0]];
-  for (let i = 1; i < measurementData.length; i++) {
-    if (Math.abs(measurementData[i].time - measurementData[i-1].time) > 15) {
-      deduped.push(measurementData[i]);
+  if (measurementData.length > 1) {
+    const deduped = [measurementData[0]];
+    for (let i = 1; i < measurementData.length; i++) {
+      if (measurementData[i].time - deduped[deduped.length - 1].time > 1) {
+        deduped.push(measurementData[i]);
+      }
     }
+    measurementData = deduped;
   }
-  measurementData = deduped.filter(Boolean);
 
   if (measurementData.length === 0) {
     const inlineReport = document.getElementById('inlineReport');
@@ -2197,14 +2199,21 @@ function generateReport() {
   }
   const isAll = selectedArea === 'all';
   const metricKeys = getActiveMetrics();
+  const MIN_FRAMES_FOR_STABILITY = 30;
+  const hasEnoughFrames = measurementData.length >= MIN_FRAMES_FOR_STABILITY;
   const stats = calcStats(metricKeys);
-  // 加重総合スコア: 姿勢判定(60%) + 安定性(40%)
+  // フレーム不足時は安定性を「評価不能」扱いにする
+  if (!hasEnoughFrames) {
+    for (const k of metricKeys) { stats[k].stability = null; }
+  }
+  // 加重総合スコア: 姿勢判定(60%) + 安定性(40%)、安定性不能時は姿勢のみ
   const POSTURE_SCORES = { good: 100, warn: 60, bad: 20 };
   const overallScore = metricKeys.reduce((s, k) => {
     const ps = POSTURE_SCORES[stats[k].status] || 60;
+    if (stats[k].stability === null) return s + ps; // 安定性なし→姿勢のみ
     return s + ps * 0.6 + stats[k].stability * 0.4;
   }, 0) / metricKeys.length;
-  const overallStability = metricKeys.reduce((s,k)=>s+stats[k].stability,0)/metricKeys.length;
+  const overallStability = hasEnoughFrames ? metricKeys.reduce((s,k)=>s+(stats[k].stability||0),0)/metricKeys.length : null;
   // 1つ以上の指標で外れ値だったフレーム数
   const perFrameOutliers = stats._perFrameOutliers || [];
   const outlierCount = perFrameOutliers.filter(c => c > 0).length;
@@ -2218,12 +2227,13 @@ function generateReport() {
     : (overallScore>=75?'良好':overallScore>=45?'要改善':'要注意');
   const scoreBg = overallScore>=75?'rgba(0,230,118,0.15)':overallScore>=45?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
   const areaLabel = isAll ? '全身' : FOCUS_AREAS[selectedArea].label;
-  const scoreTitleLabel = easy ? 'しせいのスコア' : '総合スコア';
+  const scoreTitleLabel = easy ? 'しせいのスコア' : (hasEnoughFrames ? '総合スコア' : '姿勢スコア（安定性は評価不能）');
   const outlierNote = !easy && outlierCount > 0 ? ` / 外れ値${outlierCount}フレーム除外` : '';
+  const frameNote = !easy && !hasEnoughFrames ? ` (${MIN_FRAMES_FOR_STABILITY}フレーム未満のため安定性は除外)` : '';
   html += `<div class="report-score-card">
     <div class="report-score-value" style="color:${scoreColor}">${Math.round(overallScore)}</div>
     <div class="report-score-label">${scoreTitleLabel}（${areaLabel}）</div>
-    <div class="report-score-sub" style="background:${scoreBg};color:${scoreColor}">${scoreLabel}${easy ? '' : ` — ${measurementData.length}フレーム / 15秒間${outlierNote}`}</div>
+    <div class="report-score-sub" style="background:${scoreBg};color:${scoreColor}">${scoreLabel}${easy ? '' : ` — ${measurementData.length}フレーム / 15秒間${outlierNote}${frameNote}`}</div>
   </div>`;
 
   // Worst metric（統合スコアが最低の指標）
@@ -2246,8 +2256,12 @@ function generateReport() {
     const areaScores = [];
     for (const [akey, area] of Object.entries(FOCUS_AREAS)) {
       const areaMetrics = area.metrics;
-      const areaStab = areaMetrics.reduce((s,k)=>s+stats[k].stability,0)/areaMetrics.length;
-      const areaCombo = areaMetrics.reduce((s,k) => s + (POSTURE_SCORES[stats[k].status]||60)*0.6 + stats[k].stability*0.4, 0) / areaMetrics.length;
+      const areaStab = hasEnoughFrames ? areaMetrics.reduce((s,k)=>s+(stats[k].stability||0),0)/areaMetrics.length : null;
+      const areaCombo = areaMetrics.reduce((s,k) => {
+        const ps = POSTURE_SCORES[stats[k].status]||60;
+        if (stats[k].stability === null) return s + ps;
+        return s + ps*0.6 + stats[k].stability*0.4;
+      }, 0) / areaMetrics.length;
       const worstStatus = areaMetrics.some(k=>stats[k].status==='bad') ? 'bad' : areaMetrics.some(k=>stats[k].status==='warn') ? 'warn' : 'good';
       areaScores.push({ key: akey, area, stability: areaStab, combo: areaCombo, status: worstStatus });
     }
@@ -2301,15 +2315,17 @@ function generateReport() {
       const sc = s.status==='good'?'var(--green)':s.status==='warn'?'var(--yellow)':'var(--red)';
       const sl = getStatusLabel(s.status);
       const sb = s.status==='good'?'rgba(0,230,118,0.15)':s.status==='warn'?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
-      const stabColor = s.stability>=80?'var(--green)':s.stability>=50?'var(--yellow)':'var(--red)';
-      const stabBg = s.stability>=80?'rgba(0,230,118,0.15)':s.stability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+      const stabNull = s.stability === null;
+      const stabVal = stabNull ? '--' : s.stability + '%';
+      const stabColor = stabNull?'var(--text-dim)':s.stability>=80?'var(--green)':s.stability>=50?'var(--yellow)':'var(--red)';
+      const stabBg = stabNull?'rgba(255,255,255,0.05)':s.stability>=80?'rgba(0,230,118,0.15)':s.stability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
       const outlierNote = !easy && s.outliers > 0 ? `<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">外れ値${s.outliers}フレーム除外</div>` : '';
       html += `<div class="report-metric" style="border-left:3px solid ${sc};">
         <div class="report-metric-header">
           <div class="report-metric-name">${getMetricName(key)}</div>
           <div style="display:flex;gap:4px;align-items:center;">
             <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">姿勢:${sl}</div>
-            <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${stabBg};color:${stabColor};font-weight:700;">安定:${s.stability}%</div>
+            <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${stabBg};color:${stabColor};font-weight:700;">安定:${stabVal}</div>
           </div>
         </div>
         <div class="report-metric-stats">
@@ -2335,14 +2351,16 @@ function generateReport() {
         : (s.status==='good'?md.goodAdvice:s.status==='warn'?md.warnAdvice:md.badAdvice);
       const tips = easy ? (md.easyTips || md.tips) : md.tips;
       const metricName = easy ? getMetricName(key) : md.name;
-      const stabColor2 = s.stability>=80?'var(--green)':s.stability>=50?'var(--yellow)':'var(--red)';
-      const stabBg2 = s.stability>=80?'rgba(0,230,118,0.15)':s.stability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+      const stabNull2 = s.stability === null;
+      const stabVal2 = stabNull2 ? '--' : s.stability + '%';
+      const stabColor2 = stabNull2?'var(--text-dim)':s.stability>=80?'var(--green)':s.stability>=50?'var(--yellow)':'var(--red)';
+      const stabBg2 = stabNull2?'rgba(255,255,255,0.05)':s.stability>=80?'rgba(0,230,118,0.15)':s.stability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
       html += `<div class="report-metric" style="border-left:3px solid ${sc};">
         <div class="report-metric-header">
           <div class="report-metric-name">${metricName}</div>
           <div style="display:flex;gap:4px;align-items:center;">
             <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">姿勢:${sl}</div>
-            <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${stabBg2};color:${stabColor2};font-weight:700;">安定:${s.stability}%</div>
+            <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${stabBg2};color:${stabColor2};font-weight:700;">安定:${stabVal2}</div>
           </div>
         </div>
         <div class="report-metric-stats">
@@ -2574,7 +2592,7 @@ function stopRecording() {
     avg.cvaStatus=avg.cva>53?"good":avg.cva>48?"warn":"bad";
     avg.headTiltStatus=Math.abs(avg.headTilt)<5?"good":Math.abs(avg.headTilt)<10?"warn":"bad";
     avg.headRotStatus=Math.abs(avg.headRot)<15?"good":Math.abs(avg.headRot)<30?"warn":"bad";
-    avg.lShoulderStatus=avg.lShoulderElev<3?"good":avg.lShoulderElev<6?"warn":"bad";
+    avg.lShoulderStatus=Math.abs(avg.lShoulderElev)<3?"good":Math.abs(avg.lShoulderElev)<6?"warn":"bad";
     avg.shoulderSymStatus=avg.shoulderSym<5?"good":avg.shoulderSym<10?"warn":"bad";
     avg.rElbowStatus=avg.rElbowAbd<45?"good":avg.rElbowAbd<60?"warn":"bad";
     avg.lElbowStatus=(avg.lElbowAngle>=20&&avg.lElbowAngle<=70)?"good":((avg.lElbowAngle>=10&&avg.lElbowAngle<20)||(avg.lElbowAngle>70&&avg.lElbowAngle<=90))?"warn":"bad";
