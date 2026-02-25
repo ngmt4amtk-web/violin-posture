@@ -1453,7 +1453,11 @@ function analyzePosture(landmarks) {
   results.cva = rad2deg(Math.atan2(py(shoulder)-py(ear), Math.abs(px(ear)-px(shoulder))));
   results.cvaStatus = results.cva>53?"good":results.cva>48?"warn":"bad";
   const earDy=py(lEar)-py(rEar), earDx=px(rEar)-px(lEar);
-  results.headTilt = rad2deg(Math.atan2(earDy, earDx));
+  let rawTilt = rad2deg(Math.atan2(earDy, earDx));
+  // [-90, 90] に正規化（180°付近のラップアラウンド防止）
+  if (rawTilt > 90) rawTilt = 180 - rawTilt;
+  else if (rawTilt < -90) rawTilt = -180 - rawTilt;
+  results.headTilt = rawTilt;
   results.headTiltStatus = Math.abs(results.headTilt)<5?"good":Math.abs(results.headTilt)<10?"warn":"bad";
   const noseToLEar=Math.sqrt((px(nose)-px(lEar))**2+(py(nose)-py(lEar))**2);
   const noseToREar=Math.sqrt((px(nose)-px(rEar))**2+(py(nose)-py(rEar))**2);
@@ -1467,8 +1471,12 @@ function analyzePosture(landmarks) {
   const shoulderDist=Math.abs(px(rShoulder)-px(lShoulder));
   results.shoulderSym = shoulderDist>0?rad2deg(Math.atan2(Math.abs(py(lShoulder)-py(rShoulder)),shoulderDist)):0;
   results.shoulderSymStatus = results.shoulderSym<5?"good":results.shoulderSym<10?"warn":"bad";
-  const rArmAngle=rad2deg(Math.abs(angle2D(px(rShoulder),py(rShoulder),px(rElbow),py(rElbow))-deg2rad(-90)));
-  results.rElbowAbd = Math.min(rArmAngle, 180-rArmAngle);
+  // 右上腕の垂直下向き(π/2)からの角度差を正規化
+  const armRad = angle2D(px(rShoulder),py(rShoulder),px(rElbow),py(rElbow));
+  let abdDiff = armRad - Math.PI/2;
+  if (abdDiff > Math.PI) abdDiff -= 2*Math.PI;
+  if (abdDiff < -Math.PI) abdDiff += 2*Math.PI;
+  results.rElbowAbd = Math.abs(rad2deg(abdDiff));
   results.rElbowStatus = results.rElbowAbd<45?"good":results.rElbowAbd<60?"warn":"bad";
   results.rElbowAboveShoulder = py(rElbow)<py(rShoulder);
   results.lElbowAngle = angleBetween3(px(lShoulder),py(lShoulder),px(lElbow),py(lElbow),px(lWrist),py(lWrist));
@@ -2036,20 +2044,14 @@ function beginCountdownAndMeasure() {
       timer.style.display = 'block';
       isMeasuring = true;
       measureStartTime = performance.now();
-      let _dcTick = 0;
-      let _dcSmNull = 0;
-      // detectLoop内のpushが動かない問題を回避: 独立したintervalでデータ収集
       const dataCollectInterval = setInterval(() => {
-        _dcTick++;
         if (smoothedMetrics) {
           measurementData.push({ time: performance.now() - measureStartTime, metrics: { ...smoothedMetrics } });
-        } else {
-          _dcSmNull++;
         }
       }, 100);
       const measureInterval = setInterval(() => {
         const elapsed = (performance.now() - measureStartTime) / 1000;
-        timer.textContent = Math.floor(elapsed) + '秒 / 15秒（' + measurementData.length + 'F) tick=' + _dcTick + ' null=' + _dcSmNull + ' run=' + running;
+        timer.textContent = Math.floor(elapsed) + '秒 / 15秒';
         progress.style.width = (elapsed / 15 * 100) + '%';
         if (elapsed >= 15) {
           clearInterval(measureInterval);
@@ -2080,29 +2082,93 @@ function beginCountdownAndMeasure() {
 // =============================================================================
 // REPORT GENERATION
 // =============================================================================
+// 指標別SD閾値（安定性100%→0%のスケール上限）
+const SD_THRESHOLDS = {
+  cva: 5, headTilt: 8, headRot: 20,
+  lShoulderElev: 5, shoulderSym: 5,
+  rElbowAbd: 25, lElbowAngle: 15, lWristDev: 10,
+  trunkLean: 5, pelvicTilt: 4
+};
+
+// IQR法で外れ値を除外したインデックスを返す
+function getCleanIndices(values) {
+  const sorted = [...values].sort((a,b) => a - b);
+  const n = sorted.length;
+  const q1 = sorted[Math.floor(n * 0.25)];
+  const q3 = sorted[Math.floor(n * 0.75)];
+  const iqr = q3 - q1;
+  const lo = q1 - 1.5 * iqr;
+  const hi = q3 + 1.5 * iqr;
+  const clean = [];
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] >= lo && values[i] <= hi) clean.push(i);
+  }
+  return clean;
+}
+
 function calcStats(metricKeys) {
   const stats = {};
+  // まず各指標の全値を取得
+  const allValues = {};
+  for (const key of metricKeys) {
+    allValues[key] = measurementData.map(f => METRIC_DEFS[key].getValue(f.metrics));
+  }
+  // 全指標の外れ値インデックスを集約 → どれか1つでも外れ値のフレームを除外
+  const outlierFrames = new Set();
+  for (const key of metricKeys) {
+    const clean = getCleanIndices(allValues[key]);
+    const cleanSet = new Set(clean);
+    for (let i = 0; i < allValues[key].length; i++) {
+      if (!cleanSet.has(i)) outlierFrames.add(i);
+    }
+  }
+
   for (const key of metricKeys) {
     const def = METRIC_DEFS[key];
-    const values = measurementData.map(f => def.getValue(f.metrics));
+    const rawValues = allValues[key];
+    // 外れ値除外後の値
+    const values = rawValues.filter((_, i) => !outlierFrames.has(i));
+    const outliers = rawValues.length - values.length;
+    if (values.length === 0) {
+      stats[key] = { values: rawValues, mean:0, min:0, max:0, sd:0, cv:0, stability:0, worstTime:0, worstValue:0, status:'warn', direction:'', outliers };
+      continue;
+    }
     const mean = values.reduce((a,b)=>a+b,0)/values.length;
     const min = Math.min(...values);
     const max = Math.max(...values);
     const sd = Math.sqrt(values.reduce((s,v)=>s+(v-mean)**2,0)/values.length);
     const cv = mean!==0?(sd/Math.abs(mean))*100:0;
-    const stability = Math.max(0, 100 - cv * 2);
-    let worstIdx = key==='cva' ? values.indexOf(min) : values.indexOf(max);
+    // SD基準の安定性スコア
+    const maxSD = SD_THRESHOLDS[key] || 10;
+    const stability = Math.max(0, Math.round(100 * (1 - sd / maxSD)));
+    // 外れ値除外前の全データから最悪フレームを探す（除外後データ内で）
+    let worstIdx = 0;
+    if (key === 'cva') {
+      let worstVal = Infinity;
+      for (let i = 0; i < rawValues.length; i++) {
+        if (!outlierFrames.has(i) && rawValues[i] < worstVal) { worstVal = rawValues[i]; worstIdx = i; }
+      }
+    } else {
+      let worstVal = -Infinity;
+      for (let i = 0; i < rawValues.length; i++) {
+        if (!outlierFrames.has(i) && rawValues[i] > worstVal) { worstVal = rawValues[i]; worstIdx = i; }
+      }
+    }
     const worstTime = measurementData[worstIdx]?.time/1000||0;
-    const worstValue = values[worstIdx];
-    const midMetrics = measurementData[Math.floor(measurementData.length/2)].metrics;
+    const worstValue = rawValues[worstIdx];
+    // 判定は中央フレーム（外れ値でないフレーム）から
+    const cleanIndices = [...Array(rawValues.length).keys()].filter(i => !outlierFrames.has(i));
+    const midCleanIdx = cleanIndices[Math.floor(cleanIndices.length/2)];
+    const midMetrics = measurementData[midCleanIdx].metrics;
     const status = def.getStatus(midMetrics);
-    // 方向情報（符号付き生値の平均から判定）
     let direction = '';
     if (def.getDirection && mean > 2) {
       direction = def.getDirection(midMetrics);
     }
-    stats[key] = { values, mean, min, max, sd, cv, stability, worstTime, worstValue, status, direction };
+    stats[key] = { values: rawValues, mean, min, max, sd, cv, stability, worstTime, worstValue, status, direction, outliers };
   }
+  stats._outlierFrames = outlierFrames;
+  stats._totalFrames = measurementData.length;
   return stats;
 }
 
@@ -2125,27 +2191,38 @@ function generateReport() {
   const isAll = selectedArea === 'all';
   const metricKeys = getActiveMetrics();
   const stats = calcStats(metricKeys);
+  // 加重総合スコア: 姿勢判定(60%) + 安定性(40%)
+  const POSTURE_SCORES = { good: 100, warn: 60, bad: 20 };
+  const overallScore = metricKeys.reduce((s, k) => {
+    const ps = POSTURE_SCORES[stats[k].status] || 60;
+    return s + ps * 0.6 + stats[k].stability * 0.4;
+  }, 0) / metricKeys.length;
   const overallStability = metricKeys.reduce((s,k)=>s+stats[k].stability,0)/metricKeys.length;
+  const outlierCount = stats._outlierFrames ? stats._outlierFrames.size : 0;
   let html = '';
 
   // Score card
   const easy = isEasyMode();
-  const scoreColor = overallStability>=80?'var(--green)':overallStability>=50?'var(--yellow)':'var(--red)';
+  const scoreColor = overallScore>=75?'var(--green)':overallScore>=45?'var(--yellow)':'var(--red)';
   const scoreLabel = easy
-    ? (overallStability>=80?'バッチリ！🌟':overallStability>=50?'もうちょっと！💪':'がんばろう！🔥')
-    : (overallStability>=80?'安定':overallStability>=50?'やや不安定':'不安定');
-  const scoreBg = overallStability>=80?'rgba(0,230,118,0.15)':overallStability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+    ? (overallScore>=75?'バッチリ！🌟':overallScore>=45?'もうちょっと！💪':'がんばろう！🔥')
+    : (overallScore>=75?'良好':overallScore>=45?'要改善':'要注意');
+  const scoreBg = overallScore>=75?'rgba(0,230,118,0.15)':overallScore>=45?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
   const areaLabel = isAll ? '全身' : FOCUS_AREAS[selectedArea].label;
-  const scoreTitleLabel = easy ? 'しせいのスコア' : '総合安定性スコア';
+  const scoreTitleLabel = easy ? 'しせいのスコア' : '総合スコア';
+  const outlierNote = !easy && outlierCount > 0 ? ` / 外れ値${outlierCount}フレーム除外` : '';
   html += `<div class="report-score-card">
-    <div class="report-score-value" style="color:${scoreColor}">${Math.round(overallStability)}</div>
+    <div class="report-score-value" style="color:${scoreColor}">${Math.round(overallScore)}</div>
     <div class="report-score-label">${scoreTitleLabel}（${areaLabel}）</div>
-    <div class="report-score-sub" style="background:${scoreBg};color:${scoreColor}">${scoreLabel}${easy ? '' : ` — ${measurementData.length}フレーム / 15秒間`}</div>
+    <div class="report-score-sub" style="background:${scoreBg};color:${scoreColor}">${scoreLabel}${easy ? '' : ` — ${measurementData.length}フレーム / 15秒間${outlierNote}`}</div>
   </div>`;
 
-  // Worst metric
-  let worstKey = metricKeys[0], worstStab = stats[metricKeys[0]].stability;
-  for (const k of metricKeys) { if (stats[k].stability < worstStab) { worstStab = stats[k].stability; worstKey = k; } }
+  // Worst metric（統合スコアが最低の指標）
+  let worstKey = metricKeys[0], worstCombo = Infinity;
+  for (const k of metricKeys) {
+    const combo = (POSTURE_SCORES[stats[k].status]||60)*0.6 + stats[k].stability*0.4;
+    if (combo < worstCombo) { worstCombo = combo; worstKey = k; }
+  }
   const ws = stats[worstKey];
   if (easy) {
     html += `<div class="report-worst"><h3>いちばんきをつけたいところ 👀</h3><p>${getMetricName(worstKey)}がすこし不安定だったよ。ここを意識してみよう！</p></div>`;
@@ -2161,10 +2238,11 @@ function generateReport() {
     for (const [akey, area] of Object.entries(FOCUS_AREAS)) {
       const areaMetrics = area.metrics;
       const areaStab = areaMetrics.reduce((s,k)=>s+stats[k].stability,0)/areaMetrics.length;
+      const areaCombo = areaMetrics.reduce((s,k) => s + (POSTURE_SCORES[stats[k].status]||60)*0.6 + stats[k].stability*0.4, 0) / areaMetrics.length;
       const worstStatus = areaMetrics.some(k=>stats[k].status==='bad') ? 'bad' : areaMetrics.some(k=>stats[k].status==='warn') ? 'warn' : 'good';
-      areaScores.push({ key: akey, area, stability: areaStab, status: worstStatus });
+      areaScores.push({ key: akey, area, stability: areaStab, combo: areaCombo, status: worstStatus });
     }
-    areaScores.sort((a,b) => a.stability - b.stability);
+    areaScores.sort((a,b) => a.combo - b.combo);
 
     // 腰が推定値だったかチェック（measurementDataの過半数で判定）
     const hipEstimatedCount = measurementData.filter(f => f.metrics.hipEstimated).length;
@@ -2184,7 +2262,7 @@ function generateReport() {
           <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${ab};color:${ac};font-weight:700;">${al}</div>
         </div>${estNote}
         <div class="report-metric-stats">
-          <div class="report-stat"><div class="report-stat-val" style="color:${ac}">${Math.round(as.stability)}%</div><div class="report-stat-label">安定性</div></div>
+          <div class="report-stat"><div class="report-stat-val" style="color:${ac}">${Math.round(as.combo)}</div><div class="report-stat-label">スコア</div></div>
           <div class="report-stat"><div class="report-stat-val">${as.area.metrics.length}</div><div class="report-stat-label">指標数</div></div>
           <div class="report-stat"><div class="report-stat-val">${as.area.metrics.filter(k=>stats[k].status!=='good').length}</div><div class="report-stat-label">問題数</div></div>
         </div>`;
@@ -2214,16 +2292,22 @@ function generateReport() {
       const sc = s.status==='good'?'var(--green)':s.status==='warn'?'var(--yellow)':'var(--red)';
       const sl = getStatusLabel(s.status);
       const sb = s.status==='good'?'rgba(0,230,118,0.15)':s.status==='warn'?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+      const stabColor = s.stability>=80?'var(--green)':s.stability>=50?'var(--yellow)':'var(--red)';
+      const stabBg = s.stability>=80?'rgba(0,230,118,0.15)':s.stability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+      const outlierNote = !easy && s.outliers > 0 ? `<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">外れ値${s.outliers}フレーム除外</div>` : '';
       html += `<div class="report-metric" style="border-left:3px solid ${sc};">
         <div class="report-metric-header">
           <div class="report-metric-name">${getMetricName(key)}</div>
-          <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">${sl}</div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">姿勢:${sl}</div>
+            <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${stabBg};color:${stabColor};font-weight:700;">安定:${s.stability}%</div>
+          </div>
         </div>
         <div class="report-metric-stats">
           <div class="report-stat"><div class="report-stat-val" style="color:${sc}">${s.mean.toFixed(1)}${def.unit}${s.direction ? ' '+s.direction : ''}</div><div class="report-stat-label">平均値</div></div>
           <div class="report-stat"><div class="report-stat-val">${s.min.toFixed(1)}〜${s.max.toFixed(1)}</div><div class="report-stat-label">範囲</div></div>
-          <div class="report-stat"><div class="report-stat-val">${s.stability.toFixed(0)}%</div><div class="report-stat-label">安定性</div></div>
-        </div>
+          <div class="report-stat"><div class="report-stat-val">SD ${s.sd.toFixed(1)}</div><div class="report-stat-label">標準偏差</div></div>
+        </div>${outlierNote}
         <canvas class="report-chart" id="chart-${key}" width="400" height="60"></canvas>
       </div>`;
     }
@@ -2242,15 +2326,20 @@ function generateReport() {
         : (s.status==='good'?md.goodAdvice:s.status==='warn'?md.warnAdvice:md.badAdvice);
       const tips = easy ? (md.easyTips || md.tips) : md.tips;
       const metricName = easy ? getMetricName(key) : md.name;
+      const stabColor2 = s.stability>=80?'var(--green)':s.stability>=50?'var(--yellow)':'var(--red)';
+      const stabBg2 = s.stability>=80?'rgba(0,230,118,0.15)':s.stability>=50?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
       html += `<div class="report-metric" style="border-left:3px solid ${sc};">
         <div class="report-metric-header">
           <div class="report-metric-name">${metricName}</div>
-          <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">${sl}</div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${sb};color:${sc};font-weight:700;">姿勢:${sl}</div>
+            <div style="font-size:10px;padding:2px 6px;border-radius:4px;background:${stabBg2};color:${stabColor2};font-weight:700;">安定:${s.stability}%</div>
+          </div>
         </div>
         <div class="report-metric-stats">
           <div class="report-stat"><div class="report-stat-val" style="color:${sc}">${s.mean.toFixed(1)}${def.unit}${s.direction ? ' '+s.direction : ''}</div><div class="report-stat-label">平均値</div></div>
           <div class="report-stat"><div class="report-stat-val">${s.min.toFixed(1)}〜${s.max.toFixed(1)}</div><div class="report-stat-label">範囲</div></div>
-          <div class="report-stat"><div class="report-stat-val">${s.stability.toFixed(0)}%</div><div class="report-stat-label">安定性</div></div>
+          <div class="report-stat"><div class="report-stat-val">SD ${s.sd.toFixed(1)}</div><div class="report-stat-label">標準偏差</div></div>
         </div>
         <canvas class="report-chart" id="chart-${key}" width="400" height="60"></canvas>
         <div class="report-advice"><strong>${easy ? 'ひとこと:' : '評価:'}</strong> ${advice}</div>
@@ -2311,58 +2400,79 @@ function generateReport() {
 function exportMeasurementData(metricKeys, stats) {
   const now = new Date();
   const dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-  const timeStr = String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+  const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
   const areaLabel = (selectedArea === 'all') ? '全身' : FOCUS_AREAS[selectedArea]?.label || selectedArea;
-  const easy = isEasyMode();
+  const outlierFrames = stats._outlierFrames || new Set();
+  const outlierCount = outlierFrames.size;
 
   let txt = '';
   txt += '=== バイオリン姿勢分析 測定データ ===\n';
-  txt += '日時: ' + dateStr + ' ' + timeStr.slice(0,2) + ':' + timeStr.slice(2) + '\n';
+  txt += '日時: ' + dateStr + ' ' + timeStr + '\n';
   txt += 'エリア: ' + areaLabel + '\n';
-  txt += 'フレーム数: ' + measurementData.length + '\n';
+  txt += '総フレーム数: ' + measurementData.length + '\n';
+  if (outlierCount > 0) txt += '外れ値除外: ' + outlierCount + 'フレーム（IQR法）\n';
   txt += '計測時間: 15秒\n\n';
 
-  // サマリー
+  // 指標の定義・符号規約
+  txt += '--- 指標の定義 ---\n';
+  const signDefs = {
+    cva: '耳-肩角度。>53°正常, 48-53°注意, <48°警告。大きいほど良い',
+    headTilt: '頭部側方傾斜。正=右傾斜, 負=左傾斜。|値|<5°正常',
+    headRot: '頭部回旋推定。正=左回旋, 負=右回旋。|値|<15°正常',
+    lShoulderElev: '左肩挙上。体幹長に対する左右肩高差の比率(%)。<3%正常',
+    shoulderSym: '肩高左右非対称。atan2(高低差,肩幅)。<5°正常',
+    rElbowAbd: '右肘外転。垂直下向きからの角度。<45°正常',
+    lElbowAngle: '左肘角度。肩-肘-手首の3点角度。50-80°正常',
+    lWristDev: '左手首偏位。直線(180°)からの偏差。<10°正常',
+    trunkLean: '体幹側方傾斜。正=右傾斜, 負=左傾斜。|値|<5°正常',
+    pelvicTilt: '骨盤水平。左右腰高差の角度。<3°正常'
+  };
+  for (const key of metricKeys) {
+    const def = METRIC_DEFS[key];
+    txt += def.name + '(' + def.unit + '): ' + (signDefs[key] || def.detail) + '\n';
+  }
+  txt += '\n';
+
+  // 総合スコア
   txt += '--- サマリー ---\n';
-  const overallStability = metricKeys.reduce((s,k)=>s+stats[k].stability,0)/metricKeys.length;
-  txt += '総合安定性: ' + Math.round(overallStability) + '%\n\n';
+  const POSTURE_SCORES = { good: 100, warn: 60, bad: 20 };
+  const overallScore = metricKeys.reduce((s, k) => {
+    return s + (POSTURE_SCORES[stats[k].status]||60)*0.6 + stats[k].stability*0.4;
+  }, 0) / metricKeys.length;
+  txt += '総合スコア: ' + Math.round(overallScore) + ' (姿勢60%+安定性40%の加重)\n';
+  txt += '安定性スコア算出: SD基準（指標ごとの許容SD上限に対する比率）\n\n';
 
   for (const key of metricKeys) {
     const def = METRIC_DEFS[key];
     const s = stats[key];
     txt += def.name + ':\n';
-    txt += '  平均: ' + s.mean.toFixed(2) + def.unit + (s.direction ? ' (' + s.direction + ')' : '') + '\n';
-    txt += '  範囲: ' + s.min.toFixed(2) + ' 〜 ' + s.max.toFixed(2) + def.unit + '\n';
-    txt += '  SD: ' + s.sd.toFixed(2) + '  CV: ' + s.cv.toFixed(1) + '%  安定性: ' + s.stability.toFixed(0) + '%\n';
-    txt += '  判定: ' + s.status + '\n\n';
+    txt += '  平均: ' + s.mean.toFixed(1) + def.unit + (s.direction ? ' (' + s.direction + ')' : '') + '\n';
+    txt += '  範囲: ' + s.min.toFixed(1) + ' 〜 ' + s.max.toFixed(1) + def.unit;
+    txt += ' (最悪: ' + s.worstValue.toFixed(1) + def.unit + ' @ ' + s.worstTime.toFixed(1) + '秒)\n';
+    txt += '  SD: ' + s.sd.toFixed(2) + '  安定性: ' + s.stability + '%';
+    txt += '  (許容SD上限: ' + (SD_THRESHOLDS[key]||10) + ')\n';
+    txt += '  姿勢判定: ' + s.status;
+    if (s.outliers > 0) txt += '  外れ値: ' + s.outliers + 'フレーム除外';
+    txt += '\n\n';
   }
 
-  // 0.5秒ごとの時系列データ
-  txt += '--- 時系列データ（0.5秒間隔） ---\n';
-  // ヘッダー
-  txt += '時刻(s)';
+  // 全フレーム時系列データ
+  txt += '--- 時系列データ（全フレーム） ---\n';
+  txt += '# *印 = 外れ値フレーム（統計から除外済み）\n';
+  txt += '時刻(s)\t外れ値';
   for (const key of metricKeys) {
     txt += '\t' + METRIC_DEFS[key].name + '(' + METRIC_DEFS[key].unit + ')';
   }
   txt += '\n';
 
-  // 0.5秒ごとにサンプリング
-  const interval = 500; // ms
-  for (let t = 0; t <= 15000; t += interval) {
-    // この時刻に最も近いフレームを見つける
-    let closest = null;
-    let minDiff = Infinity;
-    for (const f of measurementData) {
-      const diff = Math.abs(f.time - t);
-      if (diff < minDiff) { minDiff = diff; closest = f; }
-    }
-    if (!closest || minDiff > interval) continue;
-
-    txt += (t / 1000).toFixed(1);
+  for (let i = 0; i < measurementData.length; i++) {
+    const f = measurementData[i];
+    const isOutlier = outlierFrames.has(i);
+    txt += (f.time / 1000).toFixed(2);
+    txt += '\t' + (isOutlier ? '*' : '');
     for (const key of metricKeys) {
-      const def = METRIC_DEFS[key];
-      const val = def.getValue(closest.metrics);
-      txt += '\t' + (typeof val === 'number' ? val.toFixed(2) : '--');
+      const val = METRIC_DEFS[key].getValue(f.metrics);
+      txt += '\t' + (typeof val === 'number' ? val.toFixed(1) : '--');
     }
     txt += '\n';
   }
