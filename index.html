@@ -913,7 +913,6 @@ header h1 span { color: var(--blue); }
     <video id="video" autoplay muted playsinline webkit-playsinline></video>
     <canvas id="overlay"></canvas>
     <div class="fps-badge" id="fpsBadge" style="display:none;">-- FPS</div>
-    <div id="debugBadge" style="display:none;"></div>
     <div class="recording-badge" id="recordingBadge">REC</div>
     <select class="camera-select" id="cameraSelect" style="display:none;">
       <option value="user">前面カメラ</option>
@@ -1859,13 +1858,7 @@ function detectLoop() {
   const result = poseLandmarker.detectForVideo(video, ts);
   frameCount++;
   const hasLandmarks = result.landmarks && result.landmarks.length > 0;
-  if (ts - fpsTime >= 1000) { currentFps = frameCount; frameCount = 0; fpsTime = ts; fpsBadge.textContent = currentFps + " FPS" + (isMeasuring ? " [計測中]" : "") + (hasLandmarks ? " LM" : " --"); }
-
-  // デバッグ: 計測中にランドマーク検出状態を表示
-  if (isMeasuring) {
-    const dbg = document.getElementById('debugBadge');
-    if (dbg) dbg.textContent = hasLandmarks ? 'LM:OK' : 'LM:なし';
-  }
+  if (ts - fpsTime >= 1000) { currentFps = frameCount; frameCount = 0; fpsTime = ts; fpsBadge.textContent = currentFps + " FPS"; }
 
   if (hasLandmarks) {
     try {
@@ -1884,12 +1877,8 @@ function detectLoop() {
       drawSkeleton(result.landmarks[0], sm);
       updateUI(sm);
       if (isRecording) { recordFrames.push({ time: ts, metrics: { ...sm } }); }
-      if (isMeasuring) { measurementData.push({ time: performance.now() - measureStartTime, metrics: { ...sm } }); }
       if (isCheckingReadiness) { checkReadiness(result.landmarks[0]); }
     } catch (e) {
-      // エラーを画面に表示（1回だけ）
-      const dbg = document.getElementById('debugBadge');
-      if (dbg) dbg.textContent = 'ERR:' + e.message.slice(0, 30);
       console.error('detectLoop error:', e);
     }
   } else {
@@ -2047,18 +2036,21 @@ function beginCountdownAndMeasure() {
       timer.style.display = 'block';
       isMeasuring = true;
       measureStartTime = performance.now();
-      const dbg = document.getElementById('debugBadge');
-      if (dbg) dbg.style.display = 'block';
+      // detectLoop内のpushが動かない問題を回避: 独立したintervalでデータ収集
+      const dataCollectInterval = setInterval(() => {
+        if (smoothedMetrics) {
+          measurementData.push({ time: performance.now() - measureStartTime, metrics: { ...smoothedMetrics } });
+        }
+      }, 100);
       const measureInterval = setInterval(() => {
         const elapsed = (performance.now() - measureStartTime) / 1000;
         timer.textContent = Math.floor(elapsed) + '秒 / 15秒（' + measurementData.length + 'フレーム）';
         progress.style.width = (elapsed / 15 * 100) + '%';
         if (elapsed >= 15) {
           clearInterval(measureInterval);
+          clearInterval(dataCollectInterval);
           isMeasuring = false;
           mOverlay.style.display = 'none';
-          const dbgEnd = document.getElementById('debugBadge');
-          if (dbgEnd) dbgEnd.style.display = 'none';
           countdown.style.display = 'block';
           countdown.textContent = '';
           timer.style.display = 'none';
