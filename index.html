@@ -1248,7 +1248,7 @@ const METRIC_DEFS = {
   lShoulderElev: { id:'lshoulder', name:'左肩挙上', easyName:'左肩の高さ', unit:'%', detail:'左肩の上方偏位。バイオリニスト最大の悪習慣。', easyDetail:'左肩が上がりすぎていないかチェック', ref:'基準: <3%正常 / 3-6%注意 / >6%警告', getValue:m=>m.lShoulderElev, getStatus:m=>m.lShoulderStatus },
   shoulderSym: { id:'shouldersym', name:'肩高左右非対称', easyName:'肩の左右バランス', unit:'°', detail:'左右肩のY座標差を角度換算。', easyDetail:'両肩の高さが揃っているかチェック', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>m.shoulderSym, getStatus:m=>m.shoulderSymStatus },
   rElbowAbd: { id:'relbow', name:'右肘外転（弓腕）', easyName:'右肘（弓の手）', unit:'°', detail:'右上腕の外転角。45°以下推奨。', easyDetail:'弓を持つ手の肘の高さをチェック', ref:'基準: <45°正常 / 45-60°注意 / >60°警告', getValue:m=>m.rElbowAbd, getStatus:m=>m.rElbowStatus },
-  lElbowAngle: { id:'lelbow', name:'左肘角度（指板腕）', easyName:'左肘（押さえる手）', unit:'°', detail:'肩-肘-手首の角度。', easyDetail:'押さえる手の肘の角度をチェック', ref:'基準: 50-80°正常 / 40-50°or80-95°注意', getValue:m=>m.lElbowAngle, getStatus:m=>m.lElbowStatus },
+  lElbowAngle: { id:'lelbow', name:'左肘角度（指板腕）', easyName:'左肘（押さえる手）', unit:'°', detail:'肩-肘-手首の角度。', easyDetail:'押さえる手の肘の角度をチェック', ref:'基準: 20-70°正常 / 10-20°or70-90°注意', getValue:m=>m.lElbowAngle, getStatus:m=>m.lElbowStatus },
   lWristDev: { id:'lwrist', name:'左手首偏位', easyName:'左手首の曲がり', unit:'°', detail:'前腕-手首-指の直線からの偏位。', easyDetail:'左手首がまっすぐかチェック', ref:'基準: <10°正常 / 10-20°注意 / >20°警告', getValue:m=>m.lWristDev, getStatus:m=>m.lWristStatus },
   trunkLean: { id:'trunk', name:'体幹側方傾斜', easyName:'体の傾き', unit:'°', detail:'腰-肩ラインの垂直からの偏位。', easyDetail:'体が傾いていないかチェック', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>Math.abs(m.trunkLean), getStatus:m=>m.trunkStatus, getDirection:m=>m.trunkLean>0?'右':'左' },
   pelvicTilt: { id:'pelvic', name:'骨盤水平', easyName:'腰の水平', unit:'°', detail:'左右の腰のY座標差。', easyDetail:'腰が水平かチェック', ref:'基準: <3°正常 / 3-5°注意 / >5°警告', getValue:m=>m.pelvicTilt, getStatus:m=>m.pelvicStatus }
@@ -1311,6 +1311,8 @@ let currentScreen = 'select';
 let measurementData = [];
 let isMeasuring = false;
 let measureStartTime = 0;
+let _detectFrameId = 0; // detectLoopのフレームカウンタ（重複収集防止用）
+let _activeDataInterval = null; // 計測用interval（二重起動防止）
 let pipActive = false;
 let pipObserver = null;
 let isCheckingReadiness = false;
@@ -1480,7 +1482,7 @@ function analyzePosture(landmarks) {
   results.rElbowStatus = results.rElbowAbd<45?"good":results.rElbowAbd<60?"warn":"bad";
   results.rElbowAboveShoulder = py(rElbow)<py(rShoulder);
   results.lElbowAngle = angleBetween3(px(lShoulder),py(lShoulder),px(lElbow),py(lElbow),px(lWrist),py(lWrist));
-  results.lElbowStatus = (results.lElbowAngle>=50&&results.lElbowAngle<=80)?"good":((results.lElbowAngle>=40&&results.lElbowAngle<50)||(results.lElbowAngle>80&&results.lElbowAngle<=95))?"warn":"bad";
+  results.lElbowStatus = (results.lElbowAngle>=20&&results.lElbowAngle<=70)?"good":((results.lElbowAngle>=10&&results.lElbowAngle<20)||(results.lElbowAngle>70&&results.lElbowAngle<=90))?"warn":"bad";
   const wristAngle=angleBetween3(px(lElbow),py(lElbow),px(lWrist),py(lWrist),px(lIndex),py(lIndex));
   results.lWristDev = Math.abs(180-wristAngle);
   results.lWristStatus = results.lWristDev<10?"good":results.lWristDev<20?"warn":"bad";
@@ -1878,12 +1880,13 @@ function detectLoop() {
       sm.lShoulderStatus = sm.lShoulderElev<3?"good":sm.lShoulderElev<6?"warn":"bad";
       sm.shoulderSymStatus = sm.shoulderSym<5?"good":sm.shoulderSym<10?"warn":"bad";
       sm.rElbowStatus = sm.rElbowAbd<45?"good":sm.rElbowAbd<60?"warn":"bad";
-      sm.lElbowStatus = (sm.lElbowAngle>=50&&sm.lElbowAngle<=80)?"good":((sm.lElbowAngle>=40&&sm.lElbowAngle<50)||(sm.lElbowAngle>80&&sm.lElbowAngle<=95))?"warn":"bad";
+      sm.lElbowStatus = (sm.lElbowAngle>=20&&sm.lElbowAngle<=70)?"good":((sm.lElbowAngle>=10&&sm.lElbowAngle<20)||(sm.lElbowAngle>70&&sm.lElbowAngle<=90))?"warn":"bad";
       sm.lWristStatus = Math.abs(sm.lWristDev)<10?"good":Math.abs(sm.lWristDev)<20?"warn":"bad";
       sm.trunkStatus = Math.abs(sm.trunkLean)<5?"good":Math.abs(sm.trunkLean)<10?"warn":"bad";
       sm.pelvicStatus = sm.pelvicTilt<3?"good":sm.pelvicTilt<5?"warn":"bad";
       drawSkeleton(result.landmarks[0], sm);
       updateUI(sm);
+      _detectFrameId++;
       if (isRecording) { recordFrames.push({ time: ts, metrics: { ...sm } }); }
       if (isCheckingReadiness) { checkReadiness(result.landmarks[0]); }
     } catch (e) {
@@ -2044,11 +2047,16 @@ function beginCountdownAndMeasure() {
       timer.style.display = 'block';
       isMeasuring = true;
       measureStartTime = performance.now();
+      // 前回のintervalが残っていたらクリア（二重起動防止）
+      if (_activeDataInterval) clearInterval(_activeDataInterval);
+      let _lastCollectedFrame = -1;
       const dataCollectInterval = setInterval(() => {
-        if (smoothedMetrics) {
+        if (smoothedMetrics && _detectFrameId !== _lastCollectedFrame) {
+          _lastCollectedFrame = _detectFrameId;
           measurementData.push({ time: performance.now() - measureStartTime, metrics: { ...smoothedMetrics } });
         }
-      }, 100);
+      }, 50); // 50ms間隔（10fps検出を確実に拾う）
+      _activeDataInterval = dataCollectInterval;
       const measureInterval = setInterval(() => {
         const elapsed = (performance.now() - measureStartTime) / 1000;
         timer.textContent = Math.floor(elapsed) + '秒 / 15秒';
@@ -2056,6 +2064,7 @@ function beginCountdownAndMeasure() {
         if (elapsed >= 15) {
           clearInterval(measureInterval);
           clearInterval(dataCollectInterval);
+          _activeDataInterval = null;
           isMeasuring = false;
           mOverlay.style.display = 'none';
           countdown.style.display = 'block';
@@ -2108,29 +2117,23 @@ function getCleanIndices(values) {
 
 function calcStats(metricKeys) {
   const stats = {};
-  // まず各指標の全値を取得
-  const allValues = {};
-  for (const key of metricKeys) {
-    allValues[key] = measurementData.map(f => METRIC_DEFS[key].getValue(f.metrics));
-  }
-  // 全指標の外れ値インデックスを集約 → どれか1つでも外れ値のフレームを除外
-  const outlierFrames = new Set();
-  for (const key of metricKeys) {
-    const clean = getCleanIndices(allValues[key]);
-    const cleanSet = new Set(clean);
-    for (let i = 0; i < allValues[key].length; i++) {
-      if (!cleanSet.has(i)) outlierFrames.add(i);
-    }
-  }
+  // エクスポート用: 各フレームがどの指標で外れ値かを記録
+  const perFrameOutliers = new Array(measurementData.length).fill(0); // ビットフラグ的に使わず、カウント
 
   for (const key of metricKeys) {
     const def = METRIC_DEFS[key];
-    const rawValues = allValues[key];
-    // 外れ値除外後の値
-    const values = rawValues.filter((_, i) => !outlierFrames.has(i));
-    const outliers = rawValues.length - values.length;
+    const rawValues = measurementData.map(f => def.getValue(f.metrics));
+    // 指標ごとに独立してIQR外れ値を検出
+    const cleanIdx = getCleanIndices(rawValues);
+    const cleanSet = new Set(cleanIdx);
+    const outlierIdx = [];
+    for (let i = 0; i < rawValues.length; i++) {
+      if (!cleanSet.has(i)) { outlierIdx.push(i); perFrameOutliers[i]++; }
+    }
+    const values = cleanIdx.map(i => rawValues[i]);
+    const outliers = outlierIdx.length;
     if (values.length === 0) {
-      stats[key] = { values: rawValues, mean:0, min:0, max:0, sd:0, cv:0, stability:0, worstTime:0, worstValue:0, status:'warn', direction:'', outliers };
+      stats[key] = { values: rawValues, cleanValues: rawValues, mean:0, min:0, max:0, sd:0, cv:0, stability:0, worstTime:0, worstValue:0, status:'warn', direction:'', outliers, outlierIdx };
       continue;
     }
     const mean = values.reduce((a,b)=>a+b,0)/values.length;
@@ -2138,41 +2141,45 @@ function calcStats(metricKeys) {
     const max = Math.max(...values);
     const sd = Math.sqrt(values.reduce((s,v)=>s+(v-mean)**2,0)/values.length);
     const cv = mean!==0?(sd/Math.abs(mean))*100:0;
-    // SD基準の安定性スコア
     const maxSD = SD_THRESHOLDS[key] || 10;
     const stability = Math.max(0, Math.round(100 * (1 - sd / maxSD)));
-    // 外れ値除外前の全データから最悪フレームを探す（除外後データ内で）
-    let worstIdx = 0;
+    // 最悪フレーム（クリーンデータ内）
+    let worstIdx = cleanIdx[0];
     if (key === 'cva') {
       let worstVal = Infinity;
-      for (let i = 0; i < rawValues.length; i++) {
-        if (!outlierFrames.has(i) && rawValues[i] < worstVal) { worstVal = rawValues[i]; worstIdx = i; }
-      }
+      for (const i of cleanIdx) { if (rawValues[i] < worstVal) { worstVal = rawValues[i]; worstIdx = i; } }
     } else {
       let worstVal = -Infinity;
-      for (let i = 0; i < rawValues.length; i++) {
-        if (!outlierFrames.has(i) && rawValues[i] > worstVal) { worstVal = rawValues[i]; worstIdx = i; }
-      }
+      for (const i of cleanIdx) { if (rawValues[i] > worstVal) { worstVal = rawValues[i]; worstIdx = i; } }
     }
     const worstTime = measurementData[worstIdx]?.time/1000||0;
     const worstValue = rawValues[worstIdx];
-    // 判定は中央フレーム（外れ値でないフレーム）から
-    const cleanIndices = [...Array(rawValues.length).keys()].filter(i => !outlierFrames.has(i));
-    const midCleanIdx = cleanIndices[Math.floor(cleanIndices.length/2)];
+    // 判定は中央フレーム（クリーンデータ中央）
+    const midCleanIdx = cleanIdx[Math.floor(cleanIdx.length/2)];
     const midMetrics = measurementData[midCleanIdx].metrics;
     const status = def.getStatus(midMetrics);
     let direction = '';
     if (def.getDirection && mean > 2) {
       direction = def.getDirection(midMetrics);
     }
-    stats[key] = { values: rawValues, mean, min, max, sd, cv, stability, worstTime, worstValue, status, direction, outliers };
+    stats[key] = { values: rawValues, cleanValues: values, mean, min, max, sd, cv, stability, worstTime, worstValue, status, direction, outliers, outlierIdx };
   }
-  stats._outlierFrames = outlierFrames;
+  stats._perFrameOutliers = perFrameOutliers;
   stats._totalFrames = measurementData.length;
   return stats;
 }
 
 function generateReport() {
+  // ソート + 重複排除（同一detectFrameから2回収集された場合への防御）
+  measurementData.sort((a, b) => a.time - b.time);
+  const deduped = [measurementData[0]];
+  for (let i = 1; i < measurementData.length; i++) {
+    if (Math.abs(measurementData[i].time - measurementData[i-1].time) > 15) {
+      deduped.push(measurementData[i]);
+    }
+  }
+  measurementData = deduped.filter(Boolean);
+
   if (measurementData.length === 0) {
     const inlineReport = document.getElementById('inlineReport');
     inlineReport.innerHTML = `<div style="margin:16px;padding:16px;background:rgba(255,215,64,0.15);border-radius:12px;border:1px solid var(--yellow);">
@@ -2198,7 +2205,9 @@ function generateReport() {
     return s + ps * 0.6 + stats[k].stability * 0.4;
   }, 0) / metricKeys.length;
   const overallStability = metricKeys.reduce((s,k)=>s+stats[k].stability,0)/metricKeys.length;
-  const outlierCount = stats._outlierFrames ? stats._outlierFrames.size : 0;
+  // 1つ以上の指標で外れ値だったフレーム数
+  const perFrameOutliers = stats._perFrameOutliers || [];
+  const outlierCount = perFrameOutliers.filter(c => c > 0).length;
   let html = '';
 
   // Score card
@@ -2402,8 +2411,8 @@ function exportMeasurementData(metricKeys, stats) {
   const dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
   const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
   const areaLabel = (selectedArea === 'all') ? '全身' : FOCUS_AREAS[selectedArea]?.label || selectedArea;
-  const outlierFrames = stats._outlierFrames || new Set();
-  const outlierCount = outlierFrames.size;
+  const perFrameOutliers = stats._perFrameOutliers || [];
+  const outlierCount = perFrameOutliers.filter(c => c > 0).length;
 
   let txt = '';
   txt += '=== バイオリン姿勢分析 測定データ ===\n';
@@ -2422,7 +2431,7 @@ function exportMeasurementData(metricKeys, stats) {
     lShoulderElev: '左肩挙上。体幹長に対する左右肩高差の比率(%)。<3%正常',
     shoulderSym: '肩高左右非対称。atan2(高低差,肩幅)。<5°正常',
     rElbowAbd: '右肘外転。垂直下向きからの角度。<45°正常',
-    lElbowAngle: '左肘角度。肩-肘-手首の3点角度。50-80°正常',
+    lElbowAngle: '左肘角度。肩-肘-手首の内角（小=曲がり大）。20-70°正常',
     lWristDev: '左手首偏位。直線(180°)からの偏差。<10°正常',
     trunkLean: '体幹側方傾斜。正=右傾斜, 負=左傾斜。|値|<5°正常',
     pelvicTilt: '骨盤水平。左右腰高差の角度。<3°正常'
@@ -2458,21 +2467,26 @@ function exportMeasurementData(metricKeys, stats) {
 
   // 全フレーム時系列データ
   txt += '--- 時系列データ（全フレーム） ---\n';
-  txt += '# *印 = 外れ値フレーム（統計から除外済み）\n';
-  txt += '時刻(s)\t外れ値';
+  txt += '# 各セルの*印 = その指標で外れ値（IQR法、統計から除外）\n';
+  txt += '時刻(s)';
   for (const key of metricKeys) {
     txt += '\t' + METRIC_DEFS[key].name + '(' + METRIC_DEFS[key].unit + ')';
   }
   txt += '\n';
 
+  // 各指標の外れ値インデックスをSetに変換
+  const outlierSets = {};
+  for (const key of metricKeys) {
+    outlierSets[key] = new Set(stats[key].outlierIdx || []);
+  }
+
   for (let i = 0; i < measurementData.length; i++) {
     const f = measurementData[i];
-    const isOutlier = outlierFrames.has(i);
     txt += (f.time / 1000).toFixed(2);
-    txt += '\t' + (isOutlier ? '*' : '');
     for (const key of metricKeys) {
       const val = METRIC_DEFS[key].getValue(f.metrics);
-      txt += '\t' + (typeof val === 'number' ? val.toFixed(1) : '--');
+      const mark = outlierSets[key].has(i) ? '*' : '';
+      txt += '\t' + (typeof val === 'number' ? val.toFixed(1) : '--') + mark;
     }
     txt += '\n';
   }
@@ -2563,7 +2577,7 @@ function stopRecording() {
     avg.lShoulderStatus=avg.lShoulderElev<3?"good":avg.lShoulderElev<6?"warn":"bad";
     avg.shoulderSymStatus=avg.shoulderSym<5?"good":avg.shoulderSym<10?"warn":"bad";
     avg.rElbowStatus=avg.rElbowAbd<45?"good":avg.rElbowAbd<60?"warn":"bad";
-    avg.lElbowStatus=(avg.lElbowAngle>=50&&avg.lElbowAngle<=80)?"good":((avg.lElbowAngle>=40&&avg.lElbowAngle<50)||(avg.lElbowAngle>80&&avg.lElbowAngle<=95))?"warn":"bad";
+    avg.lElbowStatus=(avg.lElbowAngle>=20&&avg.lElbowAngle<=70)?"good":((avg.lElbowAngle>=10&&avg.lElbowAngle<20)||(avg.lElbowAngle>70&&avg.lElbowAngle<=90))?"warn":"bad";
     avg.lWristStatus=Math.abs(avg.lWristDev)<10?"good":Math.abs(avg.lWristDev)<20?"warn":"bad";
     avg.trunkStatus=Math.abs(avg.trunkLean)<5?"good":Math.abs(avg.trunkLean)<10?"warn":"bad";
     avg.pelvicStatus=avg.pelvicTilt<3?"good":avg.pelvicTilt<5?"warn":"bad";
