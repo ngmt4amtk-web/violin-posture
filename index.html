@@ -2047,15 +2047,12 @@ function beginCountdownAndMeasure() {
       timer.style.display = 'block';
       isMeasuring = true;
       measureStartTime = performance.now();
-      // 前回のintervalが残っていたらクリア（二重起動防止）
       if (_activeDataInterval) clearInterval(_activeDataInterval);
-      let _lastCollectedFrame = -1;
       const dataCollectInterval = setInterval(() => {
-        if (smoothedMetrics && _detectFrameId !== _lastCollectedFrame) {
-          _lastCollectedFrame = _detectFrameId;
+        if (smoothedMetrics) {
           measurementData.push({ time: performance.now() - measureStartTime, metrics: { ...smoothedMetrics } });
         }
-      }, 50); // 50ms間隔（10fps検出を確実に拾う）
+      }, 100);
       _activeDataInterval = dataCollectInterval;
       const measureInterval = setInterval(() => {
         const elapsed = (performance.now() - measureStartTime) / 1000;
@@ -2170,17 +2167,8 @@ function calcStats(metricKeys) {
 }
 
 function generateReport() {
-  // ソート + 完全重複排除（同一タイムスタンプ1ms以内を重複とみなす）
+  // ソートのみ（フィルタリングなし、全フレームそのまま保持）
   measurementData.sort((a, b) => a.time - b.time);
-  if (measurementData.length > 1) {
-    const deduped = [measurementData[0]];
-    for (let i = 1; i < measurementData.length; i++) {
-      if (measurementData[i].time - deduped[deduped.length - 1].time > 1) {
-        deduped.push(measurementData[i]);
-      }
-    }
-    measurementData = deduped;
-  }
 
   if (measurementData.length === 0) {
     const inlineReport = document.getElementById('inlineReport');
