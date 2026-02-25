@@ -2036,15 +2036,20 @@ function beginCountdownAndMeasure() {
       timer.style.display = 'block';
       isMeasuring = true;
       measureStartTime = performance.now();
+      let _dcTick = 0;
+      let _dcSmNull = 0;
       // detectLoop内のpushが動かない問題を回避: 独立したintervalでデータ収集
       const dataCollectInterval = setInterval(() => {
+        _dcTick++;
         if (smoothedMetrics) {
           measurementData.push({ time: performance.now() - measureStartTime, metrics: { ...smoothedMetrics } });
+        } else {
+          _dcSmNull++;
         }
       }, 100);
       const measureInterval = setInterval(() => {
         const elapsed = (performance.now() - measureStartTime) / 1000;
-        timer.textContent = Math.floor(elapsed) + '秒 / 15秒（' + measurementData.length + 'フレーム）';
+        timer.textContent = Math.floor(elapsed) + '秒 / 15秒（' + measurementData.length + 'F) tick=' + _dcTick + ' null=' + _dcSmNull + ' run=' + running;
         progress.style.width = (elapsed / 15 * 100) + '%';
         if (elapsed >= 15) {
           clearInterval(measureInterval);
