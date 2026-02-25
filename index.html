@@ -917,7 +917,6 @@ const READINESS_CHECKS = {
     { label: '顔', landmarks: [0], threshold: 0.1 },
     { label: '両肩', landmarks: [11, 12], threshold: 0.1, anyOf: true },
     { label: '両腕（肘）', landmarks: [13, 14], threshold: 0.1, anyOf: true },
-    { label: '腰', landmarks: [23, 24], threshold: 0.1, anyOf: true },
   ],
 };
 const READINESS_PASS_NEEDED = 3; // consecutive frames - 緩めの設定
@@ -1077,6 +1076,9 @@ function analyzePosture(landmarks) {
   const lIndex=landmarks[19], rIndex=landmarks[20];
   const lHip=landmarks[23], rHip=landmarks[24];
   const results = {};
+  // 腰がフレーム外（推定値）かどうか判定
+  const hipInFrame = lHip.y < 1.05 && lHip.y > -0.05 && rHip.y < 1.05 && rHip.y > -0.05;
+  results.hipEstimated = !hipInFrame;
   const useLeftEar = (lEar.visibility||0) >= (rEar.visibility||0);
   const ear = useLeftEar ? lEar : rEar;
   const shoulder = useLeftEar ? lShoulder : rShoulder;
@@ -1124,7 +1126,7 @@ function smoothMetricsF(raw) {
   if (!smoothedMetrics) { smoothedMetrics = { ...raw }; return smoothedMetrics; }
   const numKeys=["cva","headTilt","headRot","lShoulderElev","shoulderSym","rElbowAbd","lElbowAngle","lWristDev","trunkLean","pelvicTilt","rula"];
   for (const k of numKeys) { if (typeof raw[k]==="number") smoothedMetrics[k]=ema(smoothedMetrics[k],raw[k],ALPHA); }
-  const statusKeys=["cvaStatus","headTiltStatus","headRotStatus","lShoulderStatus","shoulderSymStatus","rElbowStatus","lElbowStatus","lWristStatus","trunkStatus","pelvicStatus","rElbowAboveShoulder"];
+  const statusKeys=["cvaStatus","headTiltStatus","headRotStatus","lShoulderStatus","shoulderSymStatus","rElbowStatus","lElbowStatus","lWristStatus","trunkStatus","pelvicStatus","rElbowAboveShoulder","hipEstimated"];
   for (const k of statusKeys) smoothedMetrics[k]=raw[k];
   return smoothedMetrics;
 }
@@ -1223,16 +1225,17 @@ function buildGuideContent() {
           <ellipse cx="100" cy="70" rx="50" ry="55" fill="rgba(68,138,255,0.08)" stroke="rgba(68,138,255,0.25)" stroke-width="1" stroke-dasharray="3,2"/>
         </svg>
         <div class="guide-angle-title">正面</div>
-        <div class="guide-angle-sub">推奨距離: 2〜3m</div>
-        <div class="guide-angle-sub" style="margin-top:4px;">頭部〜膝まで全身が映る位置</div>
+        <div class="guide-angle-sub">推奨距離: 50cm〜1m</div>
+        <div class="guide-angle-sub" style="margin-top:4px;">上半身が映ればOK（腰から下は映らなくて大丈夫）</div>
       </div>
       <div class="guide-tips">
         <h3>全身診断の撮影ポイント</h3>
         <ul>
-          <li>上半身全体が画面に収まるように</li>
+          <li>頭から胸あたりまで映っていればOK</li>
           <li>バイオリンを構えた演奏姿勢で撮影</li>
           <li>明るい場所・シンプルな背景が理想的</li>
           <li>15秒間、普段通りに演奏してください</li>
+          <li>体幹・骨盤は上半身から推定します</li>
         </ul>
       </div>
     `;
@@ -1323,7 +1326,8 @@ function updateUI(m) {
     card.className = `metric-card ${cardClasses[status]||"status-none"}`;
     badge.className = `metric-badge ${badgeClasses[status]||""}`;
     badge.textContent = getStatusLabel(status);
-    valEl.textContent = val.toFixed(1) + def.unit;
+    const isEstimated = m.hipEstimated && (key === 'trunkLean' || key === 'pelvicTilt');
+    valEl.textContent = val.toFixed(1) + def.unit + (isEstimated ? ' (推定)' : '');
   }
   // RULA bar
   const rula = m.rula;
@@ -1720,17 +1724,23 @@ function generateReport() {
     }
     areaScores.sort((a,b) => a.stability - b.stability);
 
+    // 腰が推定値だったかチェック（measurementDataの過半数で判定）
+    const hipEstimatedCount = measurementData.filter(f => f.metrics.hipEstimated).length;
+    const isHipEstimated = hipEstimatedCount > measurementData.length * 0.5;
+
     for (const as of areaScores) {
       const ac = as.status==='good'?'var(--green)':as.status==='warn'?'var(--yellow)':'var(--red)';
       const al = easy
         ? getStatusLabel(as.status)
         : (as.status==='good'?'良好':as.status==='warn'?'注意':'要改善');
       const ab = as.status==='good'?'rgba(0,230,118,0.15)':as.status==='warn'?'rgba(255,215,64,0.15)':'rgba(255,82,82,0.15)';
+      const isTrunkArea = as.key === 'trunk';
+      const estNote = (isTrunkArea && isHipEstimated) ? `<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">* 腰が画面外のため推定値です。正確に測定するには「体幹・骨盤」モードをお試しください</div>` : '';
       html += `<div class="report-metric" style="border-left:3px solid ${ac};">
         <div class="report-metric-header">
-          <div class="report-metric-name">${as.area.icon} ${as.area.label}</div>
+          <div class="report-metric-name">${as.area.icon} ${as.area.label}${isTrunkArea && isHipEstimated ? ' (推定)' : ''}</div>
           <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${ab};color:${ac};font-weight:700;">${al}</div>
-        </div>
+        </div>${estNote}
         <div class="report-metric-stats">
           <div class="report-stat"><div class="report-stat-val" style="color:${ac}">${Math.round(as.stability)}%</div><div class="report-stat-label">安定性</div></div>
           <div class="report-stat"><div class="report-stat-val">${as.area.metrics.length}</div><div class="report-stat-label">指標数</div></div>
