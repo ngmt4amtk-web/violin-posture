@@ -2033,7 +2033,7 @@ function beginCountdownAndMeasure() {
       measureStartTime = performance.now();
       const measureInterval = setInterval(() => {
         const elapsed = (performance.now() - measureStartTime) / 1000;
-        timer.textContent = Math.floor(elapsed) + '秒 / 15秒';
+        timer.textContent = Math.floor(elapsed) + '秒 / 15秒（' + measurementData.length + 'フレーム）';
         progress.style.width = (elapsed / 15 * 100) + '%';
         if (elapsed >= 15) {
           clearInterval(measureInterval);
@@ -2043,7 +2043,17 @@ function beginCountdownAndMeasure() {
           countdown.textContent = '';
           timer.style.display = 'none';
           progress.style.width = '0%';
-          generateReport();
+          try {
+            generateReport();
+          } catch (e) {
+            console.error('generateReport error:', e);
+            const inlineReport = document.getElementById('inlineReport');
+            inlineReport.innerHTML = `<div style="margin:16px;padding:16px;background:rgba(255,82,82,0.15);border-radius:12px;border:1px solid var(--red);">
+              <div style="font-weight:700;color:var(--red);margin-bottom:8px;">レポート生成エラー</div>
+              <div style="font-size:12px;color:var(--text-dim);">収集フレーム: ${measurementData.length}<br>エラー: ${e.message}</div>
+            </div>`;
+            inlineReport.style.display = 'block';
+          }
         }
       }, 100);
     }
@@ -2080,7 +2090,21 @@ function calcStats(metricKeys) {
 }
 
 function generateReport() {
-  if (measurementData.length === 0) return;
+  if (measurementData.length === 0) {
+    const inlineReport = document.getElementById('inlineReport');
+    inlineReport.innerHTML = `<div style="margin:16px;padding:16px;background:rgba(255,215,64,0.15);border-radius:12px;border:1px solid var(--yellow);">
+      <div style="font-weight:700;color:var(--yellow);margin-bottom:8px;">データが収集できませんでした</div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">
+        15秒間にポーズが検出されませんでした。<br>
+        ・カメラに上半身が映っているか確認してください<br>
+        ・明るい場所で試してください<br>
+        ・FPS表示が0でないか確認してください
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px;width:100%;" onclick="this.closest('div[id]').style.display='none'">閉じる</button>
+    </div>`;
+    inlineReport.style.display = 'block';
+    return;
+  }
   const isAll = selectedArea === 'all';
   const metricKeys = getActiveMetrics();
   const stats = calcStats(metricKeys);
@@ -2222,6 +2246,7 @@ function generateReport() {
   // Action buttons
   html += `<div class="report-actions">
     <button class="btn btn-primary" id="btnRetryMeasure" style="flex:1;">もう一度測定</button>
+    <button class="btn" id="btnExportData" style="flex:1;">データ書き出し</button>
     <button class="btn" id="btnReportBack" style="flex:1;">${isAll ? 'トップに戻る' : '別の部位を分析'}</button>
   </div>`;
 
@@ -2247,6 +2272,9 @@ function generateReport() {
     inlineReport.style.display = 'none';
     inlineReport.innerHTML = '';
   });
+  document.getElementById('btnExportData')?.addEventListener('click', () => {
+    exportMeasurementData(metricKeys, stats);
+  });
   document.getElementById('btnReportBack')?.addEventListener('click', () => {
     if (stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
     running = false; smoothedMetrics = null; navigateTo('select');
@@ -2261,6 +2289,75 @@ function generateReport() {
       navigateTo('guide');
     });
   });
+}
+
+function exportMeasurementData(metricKeys, stats) {
+  const now = new Date();
+  const dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  const timeStr = String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+  const areaLabel = (selectedArea === 'all') ? '全身' : FOCUS_AREAS[selectedArea]?.label || selectedArea;
+  const easy = isEasyMode();
+
+  let txt = '';
+  txt += '=== バイオリン姿勢分析 測定データ ===\n';
+  txt += '日時: ' + dateStr + ' ' + timeStr.slice(0,2) + ':' + timeStr.slice(2) + '\n';
+  txt += 'エリア: ' + areaLabel + '\n';
+  txt += 'フレーム数: ' + measurementData.length + '\n';
+  txt += '計測時間: 15秒\n\n';
+
+  // サマリー
+  txt += '--- サマリー ---\n';
+  const overallStability = metricKeys.reduce((s,k)=>s+stats[k].stability,0)/metricKeys.length;
+  txt += '総合安定性: ' + Math.round(overallStability) + '%\n\n';
+
+  for (const key of metricKeys) {
+    const def = METRIC_DEFS[key];
+    const s = stats[key];
+    txt += def.name + ':\n';
+    txt += '  平均: ' + s.mean.toFixed(2) + def.unit + (s.direction ? ' (' + s.direction + ')' : '') + '\n';
+    txt += '  範囲: ' + s.min.toFixed(2) + ' 〜 ' + s.max.toFixed(2) + def.unit + '\n';
+    txt += '  SD: ' + s.sd.toFixed(2) + '  CV: ' + s.cv.toFixed(1) + '%  安定性: ' + s.stability.toFixed(0) + '%\n';
+    txt += '  判定: ' + s.status + '\n\n';
+  }
+
+  // 0.5秒ごとの時系列データ
+  txt += '--- 時系列データ（0.5秒間隔） ---\n';
+  // ヘッダー
+  txt += '時刻(s)';
+  for (const key of metricKeys) {
+    txt += '\t' + METRIC_DEFS[key].name + '(' + METRIC_DEFS[key].unit + ')';
+  }
+  txt += '\n';
+
+  // 0.5秒ごとにサンプリング
+  const interval = 500; // ms
+  for (let t = 0; t <= 15000; t += interval) {
+    // この時刻に最も近いフレームを見つける
+    let closest = null;
+    let minDiff = Infinity;
+    for (const f of measurementData) {
+      const diff = Math.abs(f.time - t);
+      if (diff < minDiff) { minDiff = diff; closest = f; }
+    }
+    if (!closest || minDiff > interval) continue;
+
+    txt += (t / 1000).toFixed(1);
+    for (const key of metricKeys) {
+      const def = METRIC_DEFS[key];
+      const val = def.getValue(closest.metrics);
+      txt += '\t' + (typeof val === 'number' ? val.toFixed(2) : '--');
+    }
+    txt += '\n';
+  }
+
+  // ダウンロード
+  const blob = new Blob([txt], { type: 'text/plain; charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = dateStr + '_姿勢分析_' + areaLabel + '.txt';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function drawMiniChart(key, stat) {
