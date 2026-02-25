@@ -1858,8 +1858,8 @@ function detectLoop() {
   const ts = performance.now();
   const result = poseLandmarker.detectForVideo(video, ts);
   frameCount++;
-  if (ts - fpsTime >= 1000) { currentFps = frameCount; frameCount = 0; fpsTime = ts; fpsBadge.textContent = currentFps + " FPS"; }
   const hasLandmarks = result.landmarks && result.landmarks.length > 0;
+  if (ts - fpsTime >= 1000) { currentFps = frameCount; frameCount = 0; fpsTime = ts; fpsBadge.textContent = currentFps + " FPS" + (isMeasuring ? " [計測中]" : "") + (hasLandmarks ? " LM" : " --"); }
 
   // デバッグ: 計測中にランドマーク検出状態を表示
   if (isMeasuring) {
