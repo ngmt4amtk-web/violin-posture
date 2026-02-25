@@ -1286,7 +1286,8 @@ const READINESS_CHECKS = {
     { label: '両腕（肘）', landmarks: [13, 14], threshold: 0.1, anyOf: true },
   ],
 };
-const READINESS_PASS_NEEDED = 3; // consecutive frames - 緩めの設定
+const READINESS_PASS_NEEDED = 3; // frames needed (蓄積式: 連続でなくてもOK)
+let readinessFailStreak = 0; // 連続失敗カウント（10連続失敗でリセット）
 
 // =============================================================================
 // STATE
@@ -1877,7 +1878,11 @@ function detectLoop() {
     if (isCheckingReadiness) { checkReadiness(result.landmarks[0]); }
   } else {
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-    if (isCheckingReadiness) { readinessPassCount = 0; updateReadinessUI(null); }
+    if (isCheckingReadiness) {
+      readinessFailStreak++;
+      if (readinessFailStreak > 10) { readinessPassCount = 0; readinessFailStreak = 0; }
+      updateReadinessUI(null);
+    }
   }
 }
 
@@ -1891,6 +1896,7 @@ function startMeasurement30() {
   isMeasuring = false;
   isCheckingReadiness = true;
   readinessPassCount = 0;
+  readinessFailStreak = 0;
 
   const area = selectedArea || 'all';
   const checks = READINESS_CHECKS[area] || READINESS_CHECKS.all;
@@ -1931,11 +1937,15 @@ function checkReadiness(landmarks) {
   const checks = READINESS_CHECKS[area] || READINESS_CHECKS.all;
   let allPass = true;
 
+  // 'all' エリア: ランドマークが存在すれば全チェックをパスとみなす
+  // （スケルトンが描画されている = 十分な検出がある）
+  const forcePass = (area === 'all') && landmarks && landmarks.length > 0;
+
   const items = document.querySelectorAll('#readinessChecks .readiness-item');
   checks.forEach((check, i) => {
-    const pass = check.anyOf
+    const pass = forcePass || (check.anyOf
       ? check.landmarks.some(idx => lmVisible(landmarks, idx, check.threshold))
-      : check.landmarks.every(idx => lmVisible(landmarks, idx, check.threshold));
+      : check.landmarks.every(idx => lmVisible(landmarks, idx, check.threshold)));
     if (items[i]) {
       items[i].classList.toggle('pass', pass);
       items[i].querySelector('.ri-icon').textContent = pass ? '✓' : '○';
@@ -1947,9 +1957,15 @@ function checkReadiness(landmarks) {
   if (!allPass) {
     const missing = checks.filter((_, i) => !items[i]?.classList.contains('pass'));
     hint.textContent = missing.map(c => c.label).join('・') + ' が見えません';
-    readinessPassCount = 0;
+    // 蓄積式: 連続失敗が10回超えたらリセット、それ以外はカウント維持
+    readinessFailStreak++;
+    if (readinessFailStreak > 10) {
+      readinessPassCount = 0;
+      readinessFailStreak = 0;
+    }
   } else {
     readinessPassCount++;
+    readinessFailStreak = 0;
     hint.textContent = 'OK — そのまま動かないでください…';
   }
 
@@ -1981,6 +1997,7 @@ function updateReadinessUI() {
 function cancelReadiness() {
   isCheckingReadiness = false;
   readinessPassCount = 0;
+  readinessFailStreak = 0;
   document.getElementById('readinessOverlay').style.display = 'none';
 }
 
