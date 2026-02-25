@@ -1244,7 +1244,7 @@ const FOCUS_AREAS = {
 const METRIC_DEFS = {
   cva: { id:'cva', name:'頭頸角 (CVA)', easyName:'頭の位置', unit:'°', detail:'前方頭位の検出。耳-肩ラインと水平線の角度。', easyDetail:'頭が前に出すぎていないかチェック', ref:'基準: >53°正常 / 48-53°注意 / <48°警告', getValue:m=>m.cva, getStatus:m=>m.cvaStatus },
   headTilt: { id:'headtilt', name:'頭部側方傾斜', easyName:'頭の傾き', unit:'°', detail:'左右の耳の高低差から算出。', easyDetail:'頭が左右に傾いていないかチェック', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>Math.abs(m.headTilt), getStatus:m=>m.headTiltStatus, getDirection:m=>m.headTilt>0?'右':'左' },
-  headRot: { id:'headrot', name:'頭部回旋推定', easyName:'顔の向き', unit:'°', detail:'鼻と両耳の位置関係から左回旋度を推定。', easyDetail:'顔がどれくらい回っているかチェック', ref:'基準: <15°正常 / 15-30°注意 / >30°警告', getValue:m=>Math.abs(m.headRot), getStatus:m=>m.headRotStatus, getDirection:m=>m.headRot>0?'左回旋':'右回旋' },
+  headRot: { id:'headrot', name:'頭部回旋推定', easyName:'顔の向き', unit:'°', detail:'鼻と両耳の位置関係から左回旋度を推定。', easyDetail:'顔がどれくらい回っているかチェック', ref:'基準: 30-60°正常(バイオリン) / 20-30°・60-75°注意 / <20°・>75°警告', getValue:m=>Math.abs(m.headRot), getStatus:m=>m.headRotStatus, getDirection:m=>m.headRot>0?'左回旋':'右回旋' },
   lShoulderElev: { id:'lshoulder', name:'左肩挙上', easyName:'左肩の高さ', unit:'%', detail:'左右肩高差の体幹長比。正=左肩が高い。', easyDetail:'左肩が上がりすぎていないかチェック', ref:'基準: |値|<3%正常 / 3-6%注意 / >6%警告', getValue:m=>Math.abs(m.lShoulderElev), getStatus:m=>m.lShoulderStatus, getDirection:m=>m.lShoulderElev>0?'左肩が高い':'左肩が低い' },
   shoulderSym: { id:'shouldersym', name:'肩高左右非対称', easyName:'肩の左右バランス', unit:'°', detail:'左右肩のY座標差を角度換算。', easyDetail:'両肩の高さが揃っているかチェック', ref:'基準: <5°正常 / 5-10°注意 / >10°警告', getValue:m=>m.shoulderSym, getStatus:m=>m.shoulderSymStatus },
   rElbowAbd: { id:'relbow', name:'右肘外転（弓腕）', easyName:'右肘（弓の手）', unit:'°', detail:'右上腕の外転角。45°以下推奨。', easyDetail:'弓を持つ手の肘の高さをチェック', ref:'基準: <45°正常 / 45-60°注意 / >60°警告', getValue:m=>m.rElbowAbd, getStatus:m=>m.rElbowStatus },
@@ -1465,7 +1465,9 @@ function analyzePosture(landmarks) {
   const noseToREar=Math.sqrt((px(nose)-px(rEar))**2+(py(nose)-py(rEar))**2);
   const earRatio=(noseToLEar>0&&noseToREar>0)?(noseToREar-noseToLEar)/(noseToREar+noseToLEar):0;
   results.headRot = earRatio*100;
-  results.headRotStatus = Math.abs(results.headRot)<15?"good":Math.abs(results.headRot)<30?"warn":"bad";
+  // バイオリン演奏時: 左に30-60°回旋が正常
+  const absRot = Math.abs(results.headRot);
+  results.headRotStatus = (absRot>=30&&absRot<=60)?"good":((absRot>=20&&absRot<30)||(absRot>60&&absRot<=75))?"warn":"bad";
   const torsoH=((py(lHip)+py(rHip))/2)-((py(lShoulder)+py(rShoulder))/2);
   const shoulderDy=py(rShoulder)-py(lShoulder);
   results.lShoulderElev = torsoH>0?(shoulderDy/torsoH)*100:0;
@@ -1876,7 +1878,7 @@ function detectLoop() {
       const sm = smoothMetricsF(rawMetrics);
       sm.cvaStatus = sm.cva>53?"good":sm.cva>48?"warn":"bad";
       sm.headTiltStatus = Math.abs(sm.headTilt)<5?"good":Math.abs(sm.headTilt)<10?"warn":"bad";
-      sm.headRotStatus = Math.abs(sm.headRot)<15?"good":Math.abs(sm.headRot)<30?"warn":"bad";
+      const absSmRot=Math.abs(sm.headRot); sm.headRotStatus=(absSmRot>=30&&absSmRot<=60)?"good":((absSmRot>=20&&absSmRot<30)||(absSmRot>60&&absSmRot<=75))?"warn":"bad";
       sm.lShoulderStatus = Math.abs(sm.lShoulderElev)<3?"good":Math.abs(sm.lShoulderElev)<6?"warn":"bad";
       sm.shoulderSymStatus = sm.shoulderSym<5?"good":sm.shoulderSym<10?"warn":"bad";
       sm.rElbowStatus = sm.rElbowAbd<45?"good":sm.rElbowAbd<60?"warn":"bad";
@@ -2234,7 +2236,7 @@ function generateReport() {
   if (easy) {
     html += `<div class="report-worst"><h3>いちばんきをつけたいところ 👀</h3><p>${getMetricName(worstKey)}がすこし不安定だったよ。ここを意識してみよう！</p></div>`;
   } else {
-    html += `<div class="report-worst"><h3>最も不安定なポイント</h3><p>${METRIC_DEFS[worstKey].name}が${ws.worstTime.toFixed(1)}秒時点で${ws.worstValue.toFixed(1)}${METRIC_DEFS[worstKey].unit}に到達。変動係数${ws.cv.toFixed(1)}%、安定性${ws.stability.toFixed(0)}%。</p></div>`;
+    html += `<div class="report-worst"><h3>最も不安定なポイント</h3><p>${METRIC_DEFS[worstKey].name}が${ws.worstTime.toFixed(2)}秒時点で${ws.worstValue.toFixed(1)}${METRIC_DEFS[worstKey].unit}に到達。変動係数${ws.cv.toFixed(1)}%、安定性${ws.stability.toFixed(0)}%。</p></div>`;
   }
 
   if (isAll) {
@@ -2433,7 +2435,7 @@ function exportMeasurementData(metricKeys, stats) {
   const signDefs = {
     cva: '耳-肩角度。>53°正常, 48-53°注意, <48°警告。大きいほど良い',
     headTilt: '頭部側方傾斜。正=右傾斜, 負=左傾斜。|値|<5°正常',
-    headRot: '頭部回旋推定。正=左回旋, 負=右回旋。|値|<15°正常',
+    headRot: '頭部回旋推定。正=左回旋, 負=右回旋。バイオリン基準: 30-60°正常, 20-30°/60-75°注意, <20°/>75°警告',
     lShoulderElev: '左肩挙上。体幹長に対する左右肩高差の比率(%)。<3%正常',
     shoulderSym: '肩高左右非対称。atan2(高低差,肩幅)。<5°正常',
     rElbowAbd: '右肘外転。垂直下向きからの角度。<45°正常',
@@ -2454,8 +2456,12 @@ function exportMeasurementData(metricKeys, stats) {
   const overallScore = metricKeys.reduce((s, k) => {
     return s + (POSTURE_SCORES[stats[k].status]||60)*0.6 + stats[k].stability*0.4;
   }, 0) / metricKeys.length;
-  txt += '総合スコア: ' + Math.round(overallScore) + ' (姿勢60%+安定性40%の加重)\n';
-  txt += '安定性スコア算出: SD基準（指標ごとの許容SD上限に対する比率）\n\n';
+  txt += '総合スコア: ' + Math.round(overallScore) + ' / 100\n';
+  txt += '  計算式: 各指標の統合点の平均\n';
+  txt += '  統合点 = 姿勢点×0.6 + 安定性×0.4\n';
+  txt += '  姿勢点: good=100, warn=60, bad=20\n';
+  txt += '  安定性: max(0, round(100×(1 - SD/許容SD上限)))%\n';
+  txt += '  許容SD上限: ' + metricKeys.map(k => METRIC_DEFS[k].name.replace(/[（(].*$/,'') + '=' + (SD_THRESHOLDS[k]||10) + '°').join(', ') + '\n\n';
 
   for (const key of metricKeys) {
     const def = METRIC_DEFS[key];
@@ -2463,7 +2469,7 @@ function exportMeasurementData(metricKeys, stats) {
     txt += def.name + ':\n';
     txt += '  平均: ' + s.mean.toFixed(1) + def.unit + (s.direction ? ' (' + s.direction + ')' : '') + '\n';
     txt += '  範囲: ' + s.min.toFixed(1) + ' 〜 ' + s.max.toFixed(1) + def.unit;
-    txt += ' (最悪: ' + s.worstValue.toFixed(1) + def.unit + ' @ ' + s.worstTime.toFixed(1) + '秒)\n';
+    txt += ' (最悪: ' + s.worstValue.toFixed(1) + def.unit + ' @ ' + s.worstTime.toFixed(2) + '秒)\n';
     txt += '  SD: ' + s.sd.toFixed(2) + '  安定性: ' + s.stability + '%';
     txt += '  (許容SD上限: ' + (SD_THRESHOLDS[key]||10) + ')\n';
     txt += '  姿勢判定: ' + s.status;
@@ -2579,7 +2585,7 @@ function stopRecording() {
     for (const k of keys) avg[k]=recordFrames.reduce((s,f)=>s+(f.metrics[k]||0),0)/recordFrames.length;
     avg.cvaStatus=avg.cva>53?"good":avg.cva>48?"warn":"bad";
     avg.headTiltStatus=Math.abs(avg.headTilt)<5?"good":Math.abs(avg.headTilt)<10?"warn":"bad";
-    avg.headRotStatus=Math.abs(avg.headRot)<15?"good":Math.abs(avg.headRot)<30?"warn":"bad";
+    const absAvgRot=Math.abs(avg.headRot); avg.headRotStatus=(absAvgRot>=30&&absAvgRot<=60)?"good":((absAvgRot>=20&&absAvgRot<30)||(absAvgRot>60&&absAvgRot<=75))?"warn":"bad";
     avg.lShoulderStatus=Math.abs(avg.lShoulderElev)<3?"good":Math.abs(avg.lShoulderElev)<6?"warn":"bad";
     avg.shoulderSymStatus=avg.shoulderSym<5?"good":avg.shoulderSym<10?"warn":"bad";
     avg.rElbowStatus=avg.rElbowAbd<45?"good":avg.rElbowAbd<60?"warn":"bad";
