@@ -1890,15 +1890,23 @@ function detectLoop() {
 // 15-SECOND MEASUREMENT (with readiness check)
 // =============================================================================
 
-// Entry point: show readiness overlay first
+// Entry point: show readiness overlay first (or skip for 'all')
 function startMeasurement30() {
   measurementData = [];
   isMeasuring = false;
+
+  const area = selectedArea || 'all';
+
+  // 'all' エリアはreadinessスキップ — スケルトンが出ていれば十分
+  if (area === 'all') {
+    beginCountdownAndMeasure();
+    return;
+  }
+
   isCheckingReadiness = true;
   readinessPassCount = 0;
   readinessFailStreak = 0;
 
-  const area = selectedArea || 'all';
   const checks = READINESS_CHECKS[area] || READINESS_CHECKS.all;
   const rOverlay = document.getElementById('readinessOverlay');
   const rChecks = document.getElementById('readinessChecks');
